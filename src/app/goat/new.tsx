@@ -7,14 +7,16 @@ import { Button, Field, Segmented } from '@/components/ui';
 import { STAGES, type GrowthStage } from '@/lib/estimate';
 import { stageLabel } from '@/lib/format';
 import { addGoat, useHerd } from '@/lib/herd';
-import { C, S } from '@/theme';
+import { S, makeStyles, useTheme } from '@/theme';
 
 export default function RegisterGoat() {
+  const { C } = useTheme();
+  const st = useSt();
   const { from } = useLocalSearchParams<{ from?: string }>();
-  const { goats } = useHerd();
+  const { goats, profile } = useHerd();
   const [name, setName] = useState('');
   const [tag, setTag] = useState('');
-  const [member, setMember] = useState(goats[goats.length - 1]?.member ?? '');
+  const [member, setMember] = useState(profile?.name || (goats[goats.length - 1]?.member ?? ''));
   const [stage, setStage] = useState<GrowthStage | null>(null);
   const [tried, setTried] = useState(false);
 
@@ -49,7 +51,7 @@ export default function RegisterGoat() {
   );
 }
 
-const st = StyleSheet.create({
+const useSt = makeStyles((C) => StyleSheet.create({
   body: { padding: S.lg, gap: S.xl, width: '100%', maxWidth: 720, alignSelf: 'center' },
   footer: { width: '100%', maxWidth: 720, alignSelf: 'center', padding: S.lg, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: C.rule },
-});
+}));

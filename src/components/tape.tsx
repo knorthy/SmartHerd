@@ -3,13 +3,15 @@ import { StyleSheet, Text, View } from 'react-native';
 import Animated, { Easing, useAnimatedStyle, useReducedMotion, useSharedValue, withTiming } from 'react-native-reanimated';
 
 import { SALE_WEIGHT_KG } from '@/lib/estimate';
-import { C, S } from '@/theme';
+import { S, makeStyles, useTheme } from '@/theme';
 
 /**
  * The measuring tape: weight laid on a kilogram scale with the sale weight notched in ochre.
  * `compact` is the hairline strip used in lists; the full tape carries labelled graduations.
  */
 export function Tape({ kg, compact, animate }: { kg: number | null; compact?: boolean; animate?: boolean }) {
+  const { C } = useTheme();
+  const st = useSt();
   const max = compact ? SALE_WEIGHT_KG * 1.4 : Math.max(50, Math.ceil(((kg ?? 0) * 1.15) / 10) * 10);
   const p = kg === null ? 0 : Math.min(1, kg / max);
   const ready = kg !== null && kg >= SALE_WEIGHT_KG;
@@ -58,7 +60,7 @@ export function Tape({ kg, compact, animate }: { kg: number | null; compact?: bo
   );
 }
 
-const st = StyleSheet.create({
+const useSt = makeStyles((C) => StyleSheet.create({
   cTrack: { height: 3, backgroundColor: C.rule, marginTop: S.xs + 2 },
   cFill: { position: 'absolute', left: 0, top: 0, bottom: 0 },
   cSale: { position: 'absolute', top: -3, width: 1.5, height: 9, backgroundColor: C.ochre },
@@ -71,4 +73,4 @@ const st = StyleSheet.create({
   markerLine: { position: 'absolute', left: -1, top: 0, bottom: 0, width: 2 },
   labels: { height: 18, marginTop: 4 },
   label: { position: 'absolute', width: 32, marginLeft: -16, textAlign: 'center', fontSize: 11, color: C.ink2, fontVariant: ['tabular-nums'] },
-});
+}));

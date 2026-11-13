@@ -9,11 +9,13 @@ import { Button, Field, I, Icon, Segmented } from '@/components/ui';
 import { STAGES, type GrowthStage } from '@/lib/estimate';
 import { stageLabel } from '@/lib/format';
 import { useHerd } from '@/lib/herd';
-import { C, S, T } from '@/theme';
+import { S, makeStyles, useTheme } from '@/theme';
 
 const DEFAULT_DISTANCE = '150';
 
 export default function NewWeighing() {
+  const { C, T } = useTheme();
+  const st = useSt();
   const { goatId: preset } = useLocalSearchParams<{ goatId?: string }>();
   const { goats } = useHerd();
   // the preset param also arrives when a goat is registered from this screen
@@ -102,6 +104,8 @@ export default function NewWeighing() {
 }
 
 function Step({ n, title, children }: { n: string; title: string; children: React.ReactNode }) {
+  const { C, T } = useTheme();
+  const st = useSt();
   return (
     <View style={st.step}>
       <View style={st.stepHead}>
@@ -114,6 +118,8 @@ function Step({ n, title, children }: { n: string; title: string; children: Reac
 }
 
 function PhotoSlot({ label, hint, uri, onPick }: { label: string; hint: string; uri?: string; onPick: (uri: string) => void }) {
+  const { C, T } = useTheme();
+  const st = useSt();
   const [camPerm, requestCam] = ImagePicker.useCameraPermissions();
 
   const take = async () => {
@@ -153,7 +159,7 @@ function PhotoSlot({ label, hint, uri, onPick }: { label: string; hint: string; 
   );
 }
 
-const st = StyleSheet.create({
+const useSt = makeStyles((C) => StyleSheet.create({
   body: { padding: S.lg, gap: S.xxl, width: '100%', maxWidth: 720, alignSelf: 'center' },
   step: { gap: S.md },
   stepHead: { flexDirection: 'row', alignItems: 'baseline', gap: S.sm, borderBottomWidth: 1, borderBottomColor: C.ink, paddingBottom: S.sm },
@@ -161,4 +167,4 @@ const st = StyleSheet.create({
   chipOn: { borderColor: C.green, backgroundColor: C.greenTint },
   thumb: { width: 88, height: 66, borderWidth: 1, borderColor: C.ink, backgroundColor: C.greenTint, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   footer: { width: '100%', maxWidth: 720, alignSelf: 'center', padding: S.lg, gap: S.sm, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: C.rule },
-});
+}));

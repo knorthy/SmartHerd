@@ -1,14 +1,15 @@
-import { Alert, Platform, StyleSheet, Text, View } from 'react-native';
+import { Text } from 'react-native';
 
 import { TabScreen } from '@/components/screen';
 import { SyncStatus } from '@/components/sync-status';
 import { Button, DataRow, I, Section } from '@/components/ui';
 import { SALE_WEIGHT_KG } from '@/lib/estimate';
 import { kg, shortDate, time } from '@/lib/format';
-import { daysToSale, latest, loadDemoHerd, resetHerd, setOnboarded, syncNow, unsyncedCount, useHerd } from '@/lib/herd';
-import { S, T } from '@/theme';
+import { daysToSale, latest, syncNow, unsyncedCount, useHerd } from '@/lib/herd';
+import { S, useTheme } from '@/theme';
 
 export default function Coop() {
+  const { T } = useTheme();
   const herd = useHerd();
   const { goats } = herd;
   const pending = unsyncedCount(herd);
@@ -18,18 +19,6 @@ export default function Coop() {
     const d = daysToSale(g);
     return d !== null && d > 0 && d <= 30;
   }).length;
-
-  const confirmReset = () => {
-    const msg = 'This removes every goat and weighing saved on this phone.';
-    if (Platform.OS === 'web') {
-      if (confirm(msg)) resetHerd();
-      return;
-    }
-    Alert.alert('Clear all records?', msg, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Clear', style: 'destructive', onPress: resetHerd },
-    ]);
-  };
 
   return (
     <TabScreen title="Co-op" status={<SyncStatus />}>
@@ -60,26 +49,6 @@ export default function Coop() {
         <Button label="Sync now" icon={I.sync} variant="outlined" onPress={syncNow} disabled={pending === 0} style={{ marginTop: S.lg }} />
         <Text style={[T.caption, { marginTop: S.sm }]}>Prototype: sync is simulated on this device.</Text>
       </Section>
-
-      <Section title="Help" style={{ marginTop: S.xxl }}>
-        <View style={st.actions}>
-          <Button label="How SmartHerd works" variant="text" onPress={() => setOnboarded(false)} />
-        </View>
-      </Section>
-
-      <Section title="Data on this phone" style={{ marginTop: S.xxl }}>
-        <View style={st.actions}>
-          {goats.length === 0 ? (
-            <Button label="Load demo herd" variant="text" onPress={loadDemoHerd} />
-          ) : (
-            <Button label="Clear all records" variant="danger" onPress={confirmReset} />
-          )}
-        </View>
-      </Section>
     </TabScreen>
   );
 }
-
-const st = StyleSheet.create({
-  actions: { flexDirection: 'row', marginTop: S.md, marginLeft: -S.md },
-});

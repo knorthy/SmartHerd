@@ -25,7 +25,15 @@ export type Goat = {
   demo?: boolean;
 };
 
-type State = { goats: Goat[]; lastSync: number | null; onboarded?: boolean };
+export type Profile = { name: string; coop: string };
+
+type State = {
+  goats: Goat[];
+  lastSync: number | null;
+  onboarded?: boolean;
+  theme?: 'system' | 'light' | 'dark';
+  profile?: Profile;
+};
 
 const KEY = 'smartherd:v1';
 const empty: State = { goats: [], lastSync: null };
@@ -116,7 +124,7 @@ export function unsyncedCount(s: State) {
 }
 
 export function resetHerd() {
-  set({ ...empty, onboarded: state.onboarded });
+  set({ ...empty, onboarded: state.onboarded, theme: state.theme, profile: state.profile });
 }
 
 const DAY = 86_400_000;
@@ -140,10 +148,18 @@ export function loadDemoHerd() {
       .map((w, k, arr) => ({ ...w, at: Date.now() - (arr.length - 1 - k) * 21 * DAY - i * DAY }));
     return { id: newId() + i, name, tag, member: members[m], stage, weighings, demo: true };
   });
-  set({ goats, lastSync: Date.now() - 2 * DAY, onboarded: true });
+  set({ ...state, goats, lastSync: Date.now() - 2 * DAY });
 }
 
 /** First-run tutorial flag; set false to replay it. */
 export function setOnboarded(onboarded: boolean) {
   set({ ...state, onboarded });
+}
+
+export function setTheme(theme: 'system' | 'light' | 'dark') {
+  set({ ...state, theme });
+}
+
+export function setProfile(profile: Profile) {
+  set({ ...state, profile });
 }

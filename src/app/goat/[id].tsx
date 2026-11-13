@@ -6,9 +6,11 @@ import { Button, I, Section } from '@/components/ui';
 import { SALE_WEIGHT_KG } from '@/lib/estimate';
 import { ago, cm, kg, shortDate, stageLabel } from '@/lib/format';
 import { daysToSale, deleteGoat, latest, useHerd, type Weighing } from '@/lib/herd';
-import { C, S, T } from '@/theme';
+import { S, makeStyles, useTheme } from '@/theme';
 
 export default function GoatRecord() {
+  const { C, T } = useTheme();
+  const st = useSt();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { goats } = useHerd();
   const goat = goats.find((g) => g.id === id);
@@ -114,6 +116,8 @@ const CHART_H = 160;
 
 /** Weight per weighing as columns against the sale-weight line; the latest column in green. */
 function GrowthChart({ weighings }: { weighings: Weighing[] }) {
+  const { C, T } = useTheme();
+  const st = useSt();
   const shown = weighings.slice(-8);
   const max = Math.max(SALE_WEIGHT_KG * 1.15, ...shown.map((x) => x.weight));
   const saleY = (SALE_WEIGHT_KG / max) * CHART_H;
@@ -149,7 +153,7 @@ function GrowthChart({ weighings }: { weighings: Weighing[] }) {
   );
 }
 
-const st = StyleSheet.create({
+const useSt = makeStyles((C) => StyleSheet.create({
   body: { padding: S.lg, paddingBottom: S.xxl, width: '100%', maxWidth: 720, alignSelf: 'center' },
   unit: { fontSize: 24, fontWeight: '600', letterSpacing: 0, color: C.ink2 },
   tr: { flexDirection: 'row', alignItems: 'center', minHeight: 48, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: C.rule },
@@ -162,4 +166,4 @@ const st = StyleSheet.create({
   col: { width: '70%', maxWidth: 36, backgroundColor: C.rule },
   colVal: { fontSize: 11, fontWeight: '600', color: C.ink2, marginBottom: 2, fontVariant: ['tabular-nums'] },
   footer: { width: '100%', maxWidth: 720, alignSelf: 'center', padding: S.lg, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: C.rule },
-});
+}));

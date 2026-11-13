@@ -10,11 +10,13 @@ import { Button, DataRow, Section } from '@/components/ui';
 import { SALE_WEIGHT_KG, simulateEstimate, STAGES, type GrowthStage } from '@/lib/estimate';
 import { cm, kg, shortDate, stageLabel } from '@/lib/format';
 import { addWeighing, latest, useHerd } from '@/lib/herd';
-import { C, S, T } from '@/theme';
+import { S, makeStyles, useTheme } from '@/theme';
 
 type Params = { goatId: string; stage: string; side: string; top: string; distance: string };
 
 export default function Result() {
+  const { C, T } = useTheme();
+  const st = useSt();
   const p = useLocalSearchParams<Params>();
   const stage: GrowthStage = STAGES.includes(p.stage as GrowthStage) ? (p.stage as GrowthStage) : 'adult';
   const [est] = useState(() => simulateEstimate(stage));
@@ -106,12 +108,12 @@ export default function Result() {
   );
 }
 
-const st = StyleSheet.create({
+const useSt = makeStyles((C) => StyleSheet.create({
   body: { padding: S.lg, paddingBottom: S.xxl, width: '100%', maxWidth: 720, alignSelf: 'center' },
   unit: { fontSize: 24, fontWeight: '600', letterSpacing: 0, color: C.ink2 },
   figures: { gap: S.xl, marginTop: S.xl, marginBottom: S.xxl },
   footer: { width: '100%', maxWidth: 720, alignSelf: 'center', flexDirection: 'row', gap: S.md, padding: S.lg, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: C.rule },
-});
+}));
 
 /** Back to the tabs; on web a deep-linked result has nothing beneath it to dismiss. */
 function leave() {

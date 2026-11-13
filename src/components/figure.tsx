@@ -5,7 +5,7 @@ import { GestureDetector, usePanGesture, usePinchGesture, useSimultaneousGesture
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 
-import { C, S, T } from '@/theme';
+import { S, makeStyles, useTheme } from '@/theme';
 
 import { I, Icon } from './ui';
 
@@ -19,6 +19,8 @@ type Dim = { label: string; value: string };
  * shortcut: dimension lines annotate the frame, not detected keypoints; draw them at keypoints once the pose model runs.
  */
 export function Figure({ uri, caption, horizontal, vertical }: { uri?: string; caption: string; horizontal: Dim; vertical?: Dim }) {
+  const { T } = useTheme();
+  const st = useSt();
   const scale = useSharedValue(1);
   const saved = useSharedValue(1);
   const tx = useSharedValue(0);
@@ -121,6 +123,8 @@ export function Figure({ uri, caption, horizontal, vertical }: { uri?: string; c
 }
 
 function Ctl({ label, icon, onPress, disabled }: { label: string; icon: typeof I.plus; onPress: () => void; disabled?: boolean }) {
+  const { C } = useTheme();
+  const st = useSt();
   return (
     <Pressable
       accessibilityRole="button"
@@ -136,7 +140,7 @@ function Ctl({ label, icon, onPress, disabled }: { label: string; icon: typeof I
 
 const V_MARGIN = 52;
 
-const st = StyleSheet.create({
+const useSt = makeStyles((C) => StyleSheet.create({
   frame: { aspectRatio: 4 / 3, overflow: 'hidden', backgroundColor: C.greenTint, borderWidth: 1, borderColor: C.ink },
   none: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   vMargin: { width: V_MARGIN, alignItems: 'center' },
@@ -150,4 +154,4 @@ const st = StyleSheet.create({
   controls: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   ctl: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
   zoom: { minWidth: 44, textAlign: 'center', fontVariant: ['tabular-nums'] },
-});
+}));

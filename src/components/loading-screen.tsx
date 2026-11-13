@@ -12,7 +12,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 
-import { C, S, T } from '@/theme';
+import { S, makeStyles, useTheme } from '@/theme';
 
 import { LogoMark } from './logo';
 
@@ -23,6 +23,8 @@ const ease = Easing.out(Easing.exp);
  * the mark settles, a dimension line draws across under the wordmark, then the screen lifts away.
  */
 export function LoadingScreen({ onDone }: { onDone: () => void }) {
+  const { C, T } = useTheme();
+  const st = useSt();
   const reduce = useReducedMotion();
   const mark = useSharedValue(reduce ? 1 : 0);
   const line = useSharedValue(reduce ? 1 : 0);
@@ -69,9 +71,9 @@ export function LoadingScreen({ onDone }: { onDone: () => void }) {
   );
 }
 
-const st = StyleSheet.create({
+const useSt = makeStyles((C) => StyleSheet.create({
   root: { backgroundColor: C.paper, alignItems: 'center', justifyContent: 'center', gap: S.lg, zIndex: 10 },
   measure: { flexDirection: 'row', alignItems: 'center', width: 160, marginTop: S.sm },
   line: { flex: 1, height: 1.5, backgroundColor: C.green, transformOrigin: 'left' },
   tick: { width: 1.5, height: 10, backgroundColor: C.green },
-});
+}));

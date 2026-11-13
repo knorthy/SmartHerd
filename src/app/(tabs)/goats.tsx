@@ -5,9 +5,11 @@ import { TabScreen } from '@/components/screen';
 import { Button, Empty, I, Icon } from '@/components/ui';
 import { ago, kg, stageLabel } from '@/lib/format';
 import { latest, useHerd } from '@/lib/herd';
-import { C, S, T } from '@/theme';
+import { S, makeStyles, useTheme } from '@/theme';
 
 export default function Goats() {
+  const { C, T } = useTheme();
+  const st = useSt();
   const { goats } = useHerd();
   const sorted = [...goats].sort((a, b) => a.tag.localeCompare(b.tag));
 
@@ -47,7 +49,7 @@ export default function Goats() {
   );
 }
 
-const st = StyleSheet.create({
+const useSt = makeStyles((C) => StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -58,4 +60,4 @@ const st = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: C.rule,
   },
-});
+}));

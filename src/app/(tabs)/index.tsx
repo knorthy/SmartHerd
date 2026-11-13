@@ -5,13 +5,16 @@ import { TabScreen } from '@/components/screen';
 import { SyncStatus } from '@/components/sync-status';
 import { SideDiagram } from '@/components/diagrams';
 import { Tape } from '@/components/tape';
+import { TourTarget } from '@/components/tour-target';
 import { Button, Empty } from '@/components/ui';
 import { SALE_WEIGHT_KG } from '@/lib/estimate';
 import { ago, cm, kg, stageLabel } from '@/lib/format';
 import { daysToSale, latest, loadDemoHerd, rankForSale, useHerd, type Goat } from '@/lib/herd';
-import { C, S, T } from '@/theme';
+import { S, makeStyles, useTheme } from '@/theme';
 
 export default function SaleBoard() {
+  const { C, T } = useTheme();
+  const st = useSt();
   const { goats } = useHerd();
   const ranked = rankForSale(goats);
   const lastGoat = goats
@@ -22,9 +25,13 @@ export default function SaleBoard() {
   return (
     <TabScreen
       title="Sale board"
-      status={<SyncStatus />}>
+      status={
+        <TourTarget id="sync">
+          <SyncStatus />
+        </TourTarget>
+      }>
       {goats.length === 0 ? (
-        <>
+        <TourTarget id="board-main">
           <View style={st.plate}>
             <SideDiagram width={300} />
             <Text style={T.caption}>Fig. 1 — What SmartHerd measures from a side photo</Text>
@@ -39,7 +46,7 @@ export default function SaleBoard() {
             </View>
           }
           />
-        </>
+        </TourTarget>
       ) : (
         <>
           <Text style={[T.heading, { marginBottom: S.xs }]}>
@@ -49,6 +56,7 @@ export default function SaleBoard() {
             Ranked by days to {SALE_WEIGHT_KG} kg{goats.some((g) => g.demo) ? ' · demo data' : ''}
           </Text>
 
+          <TourTarget id="board-main">
           <View accessibilityRole="list">
             <View style={[st.row, st.headRow]}>
               <Text style={[T.label, st.cTag]}>Tag</Text>
@@ -60,6 +68,7 @@ export default function SaleBoard() {
               <BoardRow key={g.id} goat={g} />
             ))}
           </View>
+          </TourTarget>
 
           {lastGoat && <LastSlip goat={lastGoat} />}
         </>
@@ -69,6 +78,8 @@ export default function SaleBoard() {
 }
 
 function BoardRow({ goat }: { goat: Goat }) {
+  const { C, T } = useTheme();
+  const st = useSt();
   const w = latest(goat);
   const d = daysToSale(goat);
   const isReady = d === 0;
@@ -94,6 +105,8 @@ function BoardRow({ goat }: { goat: Goat }) {
 }
 
 function LastSlip({ goat }: { goat: Goat }) {
+  const { C, T } = useTheme();
+  const st = useSt();
   const w = latest(goat)!;
   const cells: [string, string][] = [
     ['Last weighing', `${goat.name} · ${goat.tag}`],
@@ -122,7 +135,7 @@ function LastSlip({ goat }: { goat: Goat }) {
   );
 }
 
-const st = StyleSheet.create({
+const useSt = makeStyles((C) => StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -143,4 +156,4 @@ const st = StyleSheet.create({
   cellRight: { borderRightWidth: 1, borderRightColor: C.rule, borderStyle: 'dashed' },
   cellBottom: { borderBottomWidth: 1, borderBottomColor: C.rule, borderStyle: 'dashed' },
   slipFoot: { paddingHorizontal: S.md, paddingVertical: S.sm, borderTopWidth: 1, borderTopColor: C.ink },
-});
+}));

@@ -2,12 +2,13 @@ import Svg, { Ellipse, G, Line, Path, Text as SvgText } from 'react-native-svg';
 
 import { Platform } from 'react-native';
 
-import { C } from '@/theme';
+import { useTheme } from '@/theme';
 
 const FONT = Platform.select({ web: 'system-ui, sans-serif', ios: 'Helvetica Neue', default: 'sans-serif' });
 
 /** Bulletin plate: schematic goat in side view with body-length and chest-height dimension lines. */
 export function SideDiagram({ width = 300 }: { width?: number }) {
+  const { C } = useTheme();
   return (
     <Svg width={width} height={(width * 140) / 220} viewBox="0 0 220 140" accessibilityLabel="Side view diagram: body length and chest height">
       <G stroke={C.ink} strokeWidth={1.4} strokeLinejoin="round" strokeLinecap="round">
@@ -48,6 +49,7 @@ export function SideDiagram({ width = 300 }: { width?: number }) {
 
 /** Top view: the back seen from above, with chest width across the widest point. */
 export function TopDiagram({ width = 300 }: { width?: number }) {
+  const { C } = useTheme();
   return (
     <Svg width={width} height={(width * 100) / 220} viewBox="0 0 220 100" accessibilityLabel="Top view diagram: chest width">
       <G stroke={C.ink} strokeWidth={1.4}>

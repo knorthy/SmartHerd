@@ -1,11 +1,13 @@
 import { Text, View } from 'react-native';
 import Svg, { G, Path } from 'react-native-svg';
 
-import { C, T } from '@/theme';
+import { useTheme } from '@/theme';
 
 import { MARK } from './logo-paths';
 
-export function LogoMark({ size = 32, color = C.green }: { size?: number; color?: string }) {
+export function LogoMark({ size = 32, color: tint }: { size?: number; color?: string }) {
+  const { C } = useTheme();
+  const color = tint ?? C.green;
   return (
     <Svg width={size} height={size} viewBox="0 0 100 100" accessibilityLabel="SmartHerd">
       <G fill={color}>
@@ -26,6 +28,7 @@ export function LogoMark({ size = 32, color = C.green }: { size?: number; color?
 
 /** Mark + wordmark, used in screen headers. */
 export function Brand() {
+  const { C, T } = useTheme();
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }} accessibilityRole="header">
       <LogoMark size={26} />
