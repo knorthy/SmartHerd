@@ -1,0 +1,115 @@
+import { router, useLocalSearchParams } from 'expo-router';
+import { useState } from 'react';
+import { Alert, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+import { Figure } from '@/components/figure';
+import { Button, DataRow, Section } from '@/components/ui';
+import { SALE_WEIGHT_KG, simulateEstimate, STAGES, type GrowthStage } from '@/lib/estimate';
+import { cm, kg, shortDate, stageLabel } from '@/lib/format';
+import { addWeighing, latest, useHerd } from '@/lib/herd';
+import { C, S, T } from '@/theme';
+
+type Params = { goatId: string; stage: string; side: string; top: string; distance: string };
+
+export default function Result() {
+  const p = useLocalSearchParams<Params>();
+  const stage: GrowthStage = STAGES.includes(p.stage as GrowthStage) ? (p.stage as GrowthStage) : 'adult';
+  const [est] = useState(() => simulateEstimate(stage));
+  const { goats } = useHerd();
+  const goat = goats.find((g) => g.id === p.goatId);
+  const prev = goat && latest(goat);
+
+  if (!goat) {
+    return (
+      <View style={[st.body, { flex: 1 }]}>
+        <Text style={T.heading}>This goat is no longer registered.</Text>
+        <Button label="Home" variant="outlined" onPress={() => leave()} style={{ marginTop: S.lg }} />
+      </View>
+    );
+  }
+
+  const save = () => {
+    addWeighing(goat.id, { ...est, stage, distanceCm: Number(p.distance) || 0, sideUri: p.side, topUri: p.top });
+    leave();
+    router.push({ pathname: '/goat/[id]', params: { id: goat.id } });
+  };
+
+  const home = () => {
+    const msg = 'This estimate has not been saved to the goat record.';
+    if (Platform.OS === 'web') {
+      if (confirm(`${msg} Leave anyway?`)) leave();
+      return;
+    }
+    Alert.alert('Leave without saving?', msg, [
+      { text: 'Stay', style: 'cancel' },
+      { text: 'Discard', style: 'destructive', onPress: () => leave() },
+    ]);
+  };
+
+  const diff = prev ? est.weight - prev.weight : null;
+  const toSale = SALE_WEIGHT_KG - est.weight;
+
+  return (
+    <SafeAreaView edges={['bottom']} style={{ flex: 1, backgroundColor: C.paper }}>
+      <ScrollView contentContainerStyle={st.body}>
+        <Text style={T.meta}>
+          {goat.name} · {goat.tag} · {stageLabel(stage)}
+        </Text>
+
+        <View accessible accessibilityLabel={`Estimated Weight ${kg(est.weight)} kilograms`} style={{ marginTop: S.lg }}>
+          <Text style={T.label}>Estimated Weight</Text>
+          <Text style={T.display}>
+            {kg(est.weight)}
+            <Text style={st.unit}> kg</Text>
+          </Text>
+        </View>
+        <Text style={[T.meta, { marginTop: S.xs }]}>
+          {toSale <= 0 ? (
+            <Text style={{ color: C.ochre, fontWeight: '700' }}>At sale weight</Text>
+          ) : (
+            `${kg(toSale)} kg below the ${SALE_WEIGHT_KG} kg sale weight`
+          )}
+          {diff !== null && prev ? ` · ${diff >= 0 ? '+' : '−'}${kg(Math.abs(diff))} kg since ${shortDate(prev.at)}` : ''}
+        </Text>
+
+        <View style={st.figures}>
+          <Figure
+            uri={p.side}
+            caption="Fig. 1 — Side view"
+            horizontal={{ label: 'Body Length', value: `${cm(est.bodyLength)} cm` }}
+            vertical={{ label: 'Chest Height', value: `${cm(est.chestHeight)} cm` }}
+          />
+          <Figure uri={p.top} caption="Fig. 2 — Top view" horizontal={{ label: 'Chest Width', value: `${cm(est.chestWidth)} cm` }} />
+        </View>
+
+        <Section title="Measurements" aside="cm">
+          <DataRow label="Body Length" value={cm(est.bodyLength)} />
+          <DataRow label="Chest Height" value={cm(est.chestHeight)} />
+          <DataRow label="Chest Width" value={cm(est.chestWidth)} />
+          <DataRow label="Heart Girth" value={cm(est.heartGirth)} />
+        </Section>
+        <Text style={[T.caption, { marginTop: S.md }]}>
+          Simulated estimate. Heart girth from chest height and width (Ramanujan’s ellipse approximation); weight by Schaeffer’s formula, girth² × length ÷ 10,840. Camera distance {p.distance} cm.
+        </Text>
+      </ScrollView>
+      <View style={st.footer}>
+        <Button label="Home" variant="outlined" onPress={home} style={{ flex: 1 }} />
+        <Button label="Save Goat" onPress={save} style={{ flex: 2 }} />
+      </View>
+    </SafeAreaView>
+  );
+}
+
+const st = StyleSheet.create({
+  body: { padding: S.lg, paddingBottom: S.xxl, width: '100%', maxWidth: 720, alignSelf: 'center' },
+  unit: { fontSize: 24, fontWeight: '600', letterSpacing: 0, color: C.ink2 },
+  figures: { gap: S.xl, marginTop: S.xl, marginBottom: S.xxl },
+  footer: { width: '100%', maxWidth: 720, alignSelf: 'center', flexDirection: 'row', gap: S.md, padding: S.lg, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: C.rule },
+});
+
+/** Back to the tabs; on web a deep-linked result has nothing beneath it to dismiss. */
+function leave() {
+  if (router.canDismiss()) router.dismissAll();
+  else router.replace('/(tabs)/index');
+}
