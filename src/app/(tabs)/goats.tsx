@@ -15,7 +15,7 @@ export default function Goats() {
     <TabScreen
       title="Goats"
       status={<Text style={T.meta}>{goats.length} in your herd</Text>}
-      footer={<Button label="Register goat" variant="outlined" icon={I.plus} onPress={() => router.push('/goat/new')} />}>
+      action={<Button label="Register" variant="outlined" icon={I.plus} onPress={() => router.push('/goat/new')} style={{ minHeight: 48, paddingHorizontal: S.lg }} />}>
       {goats.length === 0 ? (
         <Empty title="Your herd is empty" body="Register each goat once with a name and ear tag. Every weighing is then kept on its record." />
       ) : (

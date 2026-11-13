@@ -1,9 +1,11 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Alert, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useReducedMotion } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Figure } from '@/components/figure';
+import { Tape } from '@/components/tape';
 import { Button, DataRow, Section } from '@/components/ui';
 import { SALE_WEIGHT_KG, simulateEstimate, STAGES, type GrowthStage } from '@/lib/estimate';
 import { cm, kg, shortDate, stageLabel } from '@/lib/format';
@@ -60,9 +62,12 @@ export default function Result() {
         <View accessible accessibilityLabel={`Estimated Weight ${kg(est.weight)} kilograms`} style={{ marginTop: S.lg }}>
           <Text style={T.label}>Estimated Weight</Text>
           <Text style={T.display}>
-            {kg(est.weight)}
+            <CountUp to={est.weight} />
             <Text style={st.unit}> kg</Text>
           </Text>
+        </View>
+        <View style={{ marginTop: S.lg }}>
+          <Tape kg={est.weight} animate />
         </View>
         <Text style={[T.meta, { marginTop: S.xs }]}>
           {toSale <= 0 ? (
@@ -111,5 +116,25 @@ const st = StyleSheet.create({
 /** Back to the tabs; on web a deep-linked result has nothing beneath it to dismiss. */
 function leave() {
   if (router.canDismiss()) router.dismissAll();
-  else router.replace('/(tabs)/index');
+  else router.replace('/');
+}
+
+/** The headline figure counts up once as the tape fills, so the number and the scale land together. */
+function CountUp({ to }: { to: number }) {
+  const reduce = useReducedMotion();
+  const [v, setV] = useState(reduce ? to : 0);
+  useEffect(() => {
+    if (reduce) return;
+    const start = performance.now();
+    let raf = 0;
+    const step = (t: number) => {
+      const k = Math.min(1, (t - start) / 900);
+      setV(to * (1 - Math.pow(2, -10 * k)));
+      if (k < 1) raf = requestAnimationFrame(step);
+      else setV(to);
+    };
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, [to, reduce]);
+  return <>{kg(v)}</>;
 }

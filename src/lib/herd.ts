@@ -25,7 +25,7 @@ export type Goat = {
   demo?: boolean;
 };
 
-type State = { goats: Goat[]; lastSync: number | null };
+type State = { goats: Goat[]; lastSync: number | null; onboarded?: boolean };
 
 const KEY = 'smartherd:v1';
 const empty: State = { goats: [], lastSync: null };
@@ -105,6 +105,7 @@ export function deleteGoat(goatId: string) {
 // shortcut: SmartHerd Sync has no backend yet; "sync" just marks local records as uploaded.
 export function syncNow() {
   set({
+    ...state,
     lastSync: Date.now(),
     goats: state.goats.map((g) => ({ ...g, weighings: g.weighings.map((w) => ({ ...w, synced: true })) })),
   });
@@ -115,7 +116,7 @@ export function unsyncedCount(s: State) {
 }
 
 export function resetHerd() {
-  set(empty);
+  set({ ...empty, onboarded: state.onboarded });
 }
 
 const DAY = 86_400_000;
@@ -139,5 +140,10 @@ export function loadDemoHerd() {
       .map((w, k, arr) => ({ ...w, at: Date.now() - (arr.length - 1 - k) * 21 * DAY - i * DAY }));
     return { id: newId() + i, name, tag, member: members[m], stage, weighings, demo: true };
   });
-  set({ goats, lastSync: Date.now() - 2 * DAY });
+  set({ goats, lastSync: Date.now() - 2 * DAY, onboarded: true });
+}
+
+/** First-run tutorial flag; set false to replay it. */
+export function setOnboarded(onboarded: boolean) {
+  set({ ...state, onboarded });
 }

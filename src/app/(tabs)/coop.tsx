@@ -5,7 +5,7 @@ import { SyncStatus } from '@/components/sync-status';
 import { Button, DataRow, I, Section } from '@/components/ui';
 import { SALE_WEIGHT_KG } from '@/lib/estimate';
 import { kg, shortDate, time } from '@/lib/format';
-import { daysToSale, latest, loadDemoHerd, resetHerd, syncNow, unsyncedCount, useHerd } from '@/lib/herd';
+import { daysToSale, latest, loadDemoHerd, resetHerd, setOnboarded, syncNow, unsyncedCount, useHerd } from '@/lib/herd';
 import { S, T } from '@/theme';
 
 export default function Coop() {
@@ -59,6 +59,12 @@ export default function Coop() {
         <DataRow label="Last sync" value={herd.lastSync ? `${shortDate(herd.lastSync)}, ${time(herd.lastSync)}` : 'Never'} />
         <Button label="Sync now" icon={I.sync} variant="outlined" onPress={syncNow} disabled={pending === 0} style={{ marginTop: S.lg }} />
         <Text style={[T.caption, { marginTop: S.sm }]}>Prototype: sync is simulated on this device.</Text>
+      </Section>
+
+      <Section title="Help" style={{ marginTop: S.xxl }}>
+        <View style={st.actions}>
+          <Button label="How SmartHerd works" variant="text" onPress={() => setOnboarded(false)} />
+        </View>
       </Section>
 
       <Section title="Data on this phone" style={{ marginTop: S.xxl }}>
