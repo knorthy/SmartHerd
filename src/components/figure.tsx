@@ -5,7 +5,7 @@ import { GestureDetector, usePanGesture, usePinchGesture, useSimultaneousGesture
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 
-import { S, makeStyles, useTheme } from '@/theme';
+import { makeStyles, R, S, useTheme } from '@/theme';
 
 import { I, Icon } from './ui';
 
@@ -141,7 +141,7 @@ function Ctl({ label, icon, onPress, disabled }: { label: string; icon: typeof I
 const V_MARGIN = 52;
 
 const useSt = makeStyles((C) => StyleSheet.create({
-  frame: { aspectRatio: 4 / 3, overflow: 'hidden', backgroundColor: C.greenTint, borderWidth: 1, borderColor: C.ink },
+  frame: { aspectRatio: 4 / 3, overflow: 'hidden', backgroundColor: C.surface2, borderRadius: R.md },
   none: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   vMargin: { width: V_MARGIN, alignItems: 'center' },
   vLine: { flex: 1, width: 1, backgroundColor: C.green },

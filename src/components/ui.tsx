@@ -2,7 +2,7 @@ import { SymbolView, type SymbolViewProps } from 'expo-symbols';
 import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View, type ColorValue, type TextInputProps, type ViewStyle } from 'react-native';
 
-import { makeStyles, S, useTheme } from '@/theme';
+import { makeStyles, R, S, useTheme } from '@/theme';
 
 export type IconName = { ios: string; android: string; web: string };
 
@@ -35,7 +35,8 @@ export const I = {
 type ButtonProps = {
   label: string;
   onPress: () => void;
-  variant?: 'filled' | 'outlined' | 'text' | 'danger';
+  /** filled: the one primary action. tonal: secondary actions. text / danger: quiet inline actions. */
+  variant?: 'filled' | 'tonal' | 'text' | 'danger';
   disabled?: boolean;
   style?: ViewStyle;
   icon?: IconName;
@@ -44,7 +45,8 @@ type ButtonProps = {
 export function Button({ label, onPress, variant = 'filled', disabled, style, icon }: ButtonProps) {
   const { C } = useTheme();
   const filled = variant === 'filled';
-  const fg = filled ? C.onGreen : variant === 'outlined' ? C.ink : variant === 'danger' ? C.error : C.green;
+  const tonal = variant === 'tonal';
+  const fg = filled ? C.onGreen : tonal ? C.green : variant === 'danger' ? C.error : C.green;
   return (
     <Pressable
       accessibilityRole="button"
@@ -54,8 +56,9 @@ export function Button({ label, onPress, variant = 'filled', disabled, style, ic
       style={({ pressed }) => [
         b.base,
         filled && { backgroundColor: pressed ? C.greenPressed : C.green },
-        variant === 'outlined' && { borderWidth: 1, borderColor: C.ink, backgroundColor: pressed ? C.greenTint : C.paper },
+        tonal && { backgroundColor: pressed ? C.surface2 : C.greenTint },
         (variant === 'text' || variant === 'danger') && { backgroundColor: pressed ? C.greenTint : 'transparent', paddingHorizontal: S.md },
+        pressed && { transform: [{ scale: 0.98 }] },
         disabled && { opacity: 0.4 },
         style,
       ]}>
@@ -84,39 +87,60 @@ const useUi = makeStyles((C) =>
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'baseline',
-      paddingBottom: S.sm,
-      borderBottomWidth: 1,
-      borderBottomColor: C.ink,
-      marginBottom: S.xs,
+      paddingHorizontal: S.xs,
+      marginBottom: S.sm,
+    },
+    panel: {
+      backgroundColor: C.surface,
+      borderRadius: R.md,
+      paddingHorizontal: S.lg,
+      paddingVertical: S.sm,
+      boxShadow: '0 1px 2px rgba(10, 30, 20, 0.04), 0 4px 16px rgba(10, 30, 20, 0.04)',
     },
     row: {
       flexDirection: 'row',
       justifyContent: 'space-between',
       paddingVertical: S.md,
-      borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: C.rule,
       minHeight: 48,
       alignItems: 'center',
       gap: S.md,
     },
     input: {
       minHeight: 52,
-      borderWidth: 1,
-      borderColor: C.ink2,
-      borderRadius: 8,
-      paddingHorizontal: S.md,
+      borderWidth: 1.5,
+      borderColor: 'transparent',
+      borderRadius: R.sm,
+      paddingHorizontal: S.lg,
       fontSize: 16,
       color: C.ink,
-      backgroundColor: C.paper,
+      backgroundColor: C.surface2,
     },
-    segWrap: { flexDirection: 'row', borderWidth: 1, borderColor: C.ink2, borderRadius: 26, overflow: 'hidden' },
-    segItem: { flex: 1, minHeight: 48, flexDirection: 'row', gap: S.xs, alignItems: 'center', justifyContent: 'center' },
-    segDivider: { borderLeftWidth: 1, borderLeftColor: C.ink2 },
+    segWrap: { flexDirection: 'row', backgroundColor: C.surface2, borderRadius: 26, padding: 4, gap: 4 },
+    segItem: { flex: 1, minHeight: 44, borderRadius: 22, flexDirection: 'row', gap: S.xs, alignItems: 'center', justifyContent: 'center' },
+    segOn: { backgroundColor: C.surface, boxShadow: '0 1px 3px rgba(0, 0, 0, 0.12)' },
   }),
 );
 
-/** Bulletin-style section heading: label above a full hairline rule. */
-export function Section({ title, aside, children, style }: { title: string; aside?: ReactNode; children?: ReactNode; style?: ViewStyle }) {
+/** A raised, rounded surface for grouped content. Separation comes from space and tone, never rules. */
+export function Panel({ children, style, flush }: { children: ReactNode; style?: ViewStyle; flush?: boolean }) {
+  const ui = useUi();
+  return <View style={[ui.panel, flush && { paddingHorizontal: 0, paddingVertical: 0, overflow: 'hidden' }, style]}>{children}</View>;
+}
+
+/** Group title above a panel; pass `bare` when the children bring their own surfaces. */
+export function Section({
+  title,
+  aside,
+  children,
+  style,
+  bare,
+}: {
+  title: string;
+  aside?: ReactNode;
+  children?: ReactNode;
+  style?: ViewStyle;
+  bare?: boolean;
+}) {
   const { T } = useTheme();
   const ui = useUi();
   return (
@@ -125,19 +149,19 @@ export function Section({ title, aside, children, style }: { title: string; asid
         <Text style={T.heading}>{title}</Text>
         {typeof aside === 'string' ? <Text style={T.meta}>{aside}</Text> : aside}
       </View>
-      {children}
+      {bare ? children : <Panel>{children}</Panel>}
     </View>
   );
 }
 
-/** Label/value row with a hairline under it, figures tabular. */
+/** Label/value row inside a panel, figures tabular. */
 export function DataRow({ label, value, unit }: { label: string; value: string; unit?: string }) {
   const { T } = useTheme();
   const ui = useUi();
   return (
     <View style={ui.row}>
-      <Text style={T.body}>{label}</Text>
-      <Text style={T.bodyNum}>
+      <Text style={[T.body, { flexShrink: 1 }]}>{label}</Text>
+      <Text style={[T.bodyNum, { fontWeight: '600' }]}>
         {value}
         {unit ? <Text style={T.meta}> {unit}</Text> : null}
       </Text>
@@ -149,7 +173,7 @@ export function Field({ label, hint, error, ...props }: TextInputProps & { label
   const { C, T } = useTheme();
   const ui = useUi();
   return (
-    <View style={{ gap: S.xs }}>
+    <View style={{ gap: S.xs + 2 }}>
       <Text style={T.label}>{label}</Text>
       <TextInput
         placeholderTextColor={C.ink2}
@@ -177,21 +201,20 @@ export function Segmented<V extends string>({
   const { C, T } = useTheme();
   const ui = useUi();
   return (
-    <View style={{ gap: S.xs }}>
+    <View style={{ gap: S.xs + 2 }}>
       <Text style={T.label}>{label}</Text>
       <View style={ui.segWrap} accessibilityRole="radiogroup">
-        {options.map((o, i) => {
+        {options.map((o) => {
           const on = o.value === value;
-          const icon = on ? I.check : o.icon;
           return (
             <Pressable
               key={o.value}
               accessibilityRole="radio"
               accessibilityState={{ selected: on }}
               onPress={() => onChange(o.value)}
-              style={[ui.segItem, i > 0 && ui.segDivider, on && { backgroundColor: C.greenTint }]}>
-              {icon && <Icon name={icon} size={18} color={on ? C.green : C.ink2} />}
-              <Text style={[T.body, on && { color: C.green, fontWeight: '600' }]}>{o.label}</Text>
+              style={[ui.segItem, on && ui.segOn]}>
+              {o.icon && <Icon name={o.icon} size={18} color={on ? C.green : C.ink2} />}
+              <Text style={[T.body, { color: on ? C.green : C.ink2, fontWeight: on ? '600' : '500' }]}>{o.label}</Text>
             </Pressable>
           );
         })}
@@ -203,7 +226,7 @@ export function Segmented<V extends string>({
 export function Empty({ title, body, action }: { title: string; body: string; action?: ReactNode }) {
   const { T } = useTheme();
   return (
-    <View style={{ paddingVertical: S.xxl, gap: S.sm }}>
+    <View style={{ paddingVertical: S.xl, gap: S.sm }}>
       <Text style={T.heading}>{title}</Text>
       <Text style={[T.meta, { maxWidth: 320 }]}>{body}</Text>
       {action ? <View style={{ marginTop: S.md, alignSelf: 'flex-start' }}>{action}</View> : null}

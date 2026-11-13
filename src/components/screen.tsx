@@ -39,9 +39,7 @@ const useSt = makeStyles((C) => StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingTop: S.md,
-    paddingBottom: S.md,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: C.rule,
+    paddingBottom: S.xs,
   },
   head: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', paddingTop: S.xl, paddingBottom: S.lg, gap: S.md },
 }));

@@ -53,5 +53,5 @@ export default function RegisterGoat() {
 
 const useSt = makeStyles((C) => StyleSheet.create({
   body: { padding: S.lg, gap: S.xl, width: '100%', maxWidth: 720, alignSelf: 'center' },
-  footer: { width: '100%', maxWidth: 720, alignSelf: 'center', padding: S.lg, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: C.rule },
+  footer: { width: '100%', maxWidth: 720, alignSelf: 'center', padding: S.lg },
 }));

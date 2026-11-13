@@ -4,12 +4,16 @@ import { useHerd } from '@/lib/herd';
 
 /** Extension Bulletin palette. Light: white page and ink. Dark: the same bulletin read under a lamp at night. */
 const light = {
-  paper: '#FFFFFF',
+  paper: '#F2F5F3',
+  surface: '#FFFFFF',
+  surface2: '#E8EEEA',
   ink: '#111614',
   ink2: '#4A5651',
   rule: '#D9E4DE',
   green: '#0F5C45',
   onGreen: '#FFFFFF',
+  hero: '#0F5C45',
+  onHero: '#FFFFFF',
   greenPressed: '#0B4634',
   greenTint: '#E7EFEA',
   ochre: '#8A5710',
@@ -24,12 +28,16 @@ const light = {
 export type Palette = typeof light;
 
 const dark: Palette = {
-  paper: '#0E1311',
+  paper: '#0A0E0C',
+  surface: '#141B18',
+  surface2: '#1D2621',
   ink: '#E6ECE8',
   ink2: '#9DABA4',
   rule: '#27322D',
   green: '#5CC29A',
   onGreen: '#06120D',
+  hero: '#123B2E',
+  onHero: '#E6F3EC',
   greenPressed: '#49A883',
   greenTint: '#16261F',
   ochre: '#E2AA4E',
@@ -46,13 +54,16 @@ export type Scheme = 'light' | 'dark';
 
 export const S = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24, xxl: 32 } as const;
 
+/** Corner radii: tiles and inputs, grouped panels, large hero panels. */
+export const R = { sm: 12, md: 18, lg: 26 } as const;
+
 const tab = ['tabular-nums'] as const;
 
 function typeFor(C: Palette) {
   return StyleSheet.create({
     display: { fontSize: 56, lineHeight: 60, fontWeight: '700', letterSpacing: -1.5, color: C.ink, fontVariant: [...tab] },
-    title: { fontSize: 28, lineHeight: 34, fontWeight: '700', letterSpacing: -0.4, color: C.ink },
-    heading: { fontSize: 18, lineHeight: 24, fontWeight: '600', color: C.ink },
+    title: { fontSize: 32, lineHeight: 38, fontWeight: '700', letterSpacing: -0.8, color: C.ink },
+    heading: { fontSize: 18, lineHeight: 24, fontWeight: '600', letterSpacing: -0.2, color: C.ink },
     body: { fontSize: 16, lineHeight: 22, color: C.ink },
     bodyNum: { fontSize: 16, lineHeight: 22, color: C.ink, fontVariant: [...tab] },
     meta: { fontSize: 14, lineHeight: 20, color: C.ink2 },

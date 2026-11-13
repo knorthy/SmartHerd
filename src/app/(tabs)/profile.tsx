@@ -56,15 +56,15 @@ export default function Profile() {
       </View>
 
       <Section title="You" style={st.section}>
-        <View style={{ gap: S.lg, marginTop: S.md }}>
+        <View style={{ gap: S.lg, paddingVertical: S.md }}>
           <Field label="Your name" value={name} onChangeText={setName} placeholder="e.g. Ana Reyes" hint="Pre-filled as the member when you register a goat." />
           <Field label="Cooperative" value={coop} onChangeText={setCoop} placeholder="e.g. Silang Goat Raisers Cooperative" />
-          <Button label="Save profile" variant="outlined" onPress={() => setProfile({ name: name.trim(), coop: coop.trim() })} disabled={!dirty} />
+          <Button label="Save profile" variant="tonal" onPress={() => setProfile({ name: name.trim(), coop: coop.trim() })} disabled={!dirty} />
         </View>
       </Section>
 
       <Section title="Appearance" style={st.section}>
-        <View style={{ marginTop: S.md }}>
+        <View style={{ paddingVertical: S.md }}>
           <Segmented<ThemePref>
             label="Theme"
             value={herd.theme ?? 'system'}
@@ -113,8 +113,6 @@ const useSt = makeStyles((C) =>
       height: 64,
       borderRadius: 32,
       backgroundColor: C.greenTint,
-      borderWidth: 1,
-      borderColor: C.green,
       alignItems: 'center',
       justifyContent: 'center',
     },

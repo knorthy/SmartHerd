@@ -9,7 +9,7 @@ import { Button, Field, I, Icon, Segmented } from '@/components/ui';
 import { STAGES, type GrowthStage } from '@/lib/estimate';
 import { stageLabel } from '@/lib/format';
 import { useHerd } from '@/lib/herd';
-import { S, makeStyles, useTheme } from '@/theme';
+import { makeStyles, R, S, useTheme } from '@/theme';
 
 const DEFAULT_DISTANCE = '150';
 
@@ -47,7 +47,7 @@ export default function NewWeighing() {
       <ScrollView contentContainerStyle={st.body} keyboardShouldPersistTaps="handled">
         <Step n="1" title="Goat">
           {goats.length === 0 ? (
-            <Button label="Register a goat first" variant="outlined" onPress={() => router.push({ pathname: '/goat/new', params: { from: 'weigh' } })} />
+            <Button label="Register a goat first" variant="tonal" onPress={() => router.push({ pathname: '/goat/new', params: { from: 'weigh' } })} />
           ) : (
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: S.sm }}>
               {goats.map((g) => {
@@ -109,7 +109,9 @@ function Step({ n, title, children }: { n: string; title: string; children: Reac
   return (
     <View style={st.step}>
       <View style={st.stepHead}>
-        <Text style={[T.label, { color: C.green, fontVariant: ['tabular-nums'] }]}>{n}</Text>
+        <View style={st.badge}>
+          <Text style={[st.badgeText, { color: C.onGreen }]}>{n}</Text>
+        </View>
         <Text style={T.heading}>{title}</Text>
       </View>
       {children}
@@ -152,7 +154,7 @@ function PhotoSlot({ label, hint, uri, onPick }: { label: string; hint: string; 
         </View>
       </View>
       <View style={{ flexDirection: 'row', gap: S.sm }}>
-        <Button label={uri ? 'Retake' : 'Take photo'} variant="outlined" icon={I.camera} onPress={take} style={{ flex: 1, paddingHorizontal: S.md }} />
+        <Button label={uri ? 'Retake' : 'Take photo'} variant="tonal" icon={I.camera} onPress={take} style={{ flex: 1, paddingHorizontal: S.md }} />
         <Button label="Gallery" variant="text" icon={I.library} onPress={choose} />
       </View>
     </View>
@@ -160,11 +162,19 @@ function PhotoSlot({ label, hint, uri, onPick }: { label: string; hint: string; 
 }
 
 const useSt = makeStyles((C) => StyleSheet.create({
-  body: { padding: S.lg, gap: S.xxl, width: '100%', maxWidth: 720, alignSelf: 'center' },
-  step: { gap: S.md },
-  stepHead: { flexDirection: 'row', alignItems: 'baseline', gap: S.sm, borderBottomWidth: 1, borderBottomColor: C.ink, paddingBottom: S.sm },
-  chip: { minHeight: 48, paddingHorizontal: S.lg, borderRadius: 24, borderWidth: 1, borderColor: C.ink2, flexDirection: 'row', alignItems: 'center', gap: S.sm },
-  chipOn: { borderColor: C.green, backgroundColor: C.greenTint },
-  thumb: { width: 88, height: 66, borderWidth: 1, borderColor: C.ink, backgroundColor: C.greenTint, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
-  footer: { width: '100%', maxWidth: 720, alignSelf: 'center', padding: S.lg, gap: S.sm, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: C.rule },
+  body: { padding: S.lg, gap: S.md, width: '100%', maxWidth: 720, alignSelf: 'center' },
+  step: {
+    gap: S.lg,
+    backgroundColor: C.surface,
+    borderRadius: R.md,
+    padding: S.lg,
+    boxShadow: '0 1px 2px rgba(10, 30, 20, 0.04), 0 4px 16px rgba(10, 30, 20, 0.04)',
+  },
+  stepHead: { flexDirection: 'row', alignItems: 'center', gap: S.md },
+  badge: { width: 28, height: 28, borderRadius: 14, backgroundColor: C.green, alignItems: 'center', justifyContent: 'center' },
+  badgeText: { fontSize: 14, fontWeight: '700', fontVariant: ['tabular-nums'] },
+  chip: { minHeight: 48, paddingHorizontal: S.lg, borderRadius: 24, backgroundColor: C.surface2, flexDirection: 'row', alignItems: 'center', gap: S.sm },
+  chipOn: { backgroundColor: C.greenTint, boxShadow: `inset 0 0 0 1.5px ${C.green}` },
+  thumb: { width: 88, height: 66, borderRadius: R.sm, backgroundColor: C.surface2, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  footer: { width: '100%', maxWidth: 720, alignSelf: 'center', padding: S.lg, gap: S.sm },
 }));

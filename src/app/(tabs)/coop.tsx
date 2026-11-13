@@ -46,7 +46,7 @@ export default function Coop() {
         </Text>
         <DataRow label="Records waiting" value={String(pending)} />
         <DataRow label="Last sync" value={herd.lastSync ? `${shortDate(herd.lastSync)}, ${time(herd.lastSync)}` : 'Never'} />
-        <Button label="Sync now" icon={I.sync} variant="outlined" onPress={syncNow} disabled={pending === 0} style={{ marginTop: S.lg }} />
+        <Button label="Sync now" icon={I.sync} variant="tonal" onPress={syncNow} disabled={pending === 0} style={{ marginTop: S.lg }} />
         <Text style={[T.caption, { marginTop: S.sm }]}>Prototype: sync is simulated on this device.</Text>
       </Section>
     </TabScreen>

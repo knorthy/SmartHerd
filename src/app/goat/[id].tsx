@@ -2,11 +2,12 @@ import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { Alert, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Button, I, Section } from '@/components/ui';
+import { Tape } from '@/components/tape';
+import { Button, I, Panel, Section } from '@/components/ui';
 import { SALE_WEIGHT_KG } from '@/lib/estimate';
 import { ago, cm, kg, shortDate, stageLabel } from '@/lib/format';
 import { daysToSale, deleteGoat, latest, useHerd, type Weighing } from '@/lib/herd';
-import { S, makeStyles, useTheme } from '@/theme';
+import { makeStyles, R, S, useTheme } from '@/theme';
 
 export default function GoatRecord() {
   const { C, T } = useTheme();
@@ -54,7 +55,8 @@ export default function GoatRecord() {
 
         {w ? (
           <>
-            <View style={{ marginTop: S.lg }} accessible accessibilityLabel={`Latest Estimated Weight ${kg(w.weight)} kilograms, ${ago(w.at)}`}>
+            <Panel style={st.hero}>
+            <View accessible accessibilityLabel={`Latest Estimated Weight ${kg(w.weight)} kilograms, ${ago(w.at)}`}>
               <Text style={T.label}>Latest Estimated Weight</Text>
               <Text style={T.display}>
                 {kg(w.weight)}
@@ -71,13 +73,17 @@ export default function GoatRecord() {
                 `about ${d} days to ${SALE_WEIGHT_KG} kg`
               )}
             </Text>
+            <View style={{ marginTop: S.lg }}>
+              <Tape kg={w.weight} />
+            </View>
+            </Panel>
 
             <Section title="Growth" aside={`${goat.weighings.length} weighings`} style={{ marginTop: S.xxl }}>
               <GrowthChart weighings={goat.weighings} />
             </Section>
 
             <Section title="Weighings" style={{ marginTop: S.xxl }}>
-              <View style={[st.tr, { borderBottomColor: C.ink2 }]}>
+              <View style={st.tr}>
                 <Text style={[T.label, st.cDate]}>Date</Text>
                 <Text style={[T.label, st.cNum]}>kg</Text>
                 <Text style={[T.label, st.cNum]}>Girth cm</Text>
@@ -142,7 +148,7 @@ function GrowthChart({ weighings }: { weighings: Weighing[] }) {
           );
         })}
       </View>
-      <View style={{ flexDirection: 'row', gap: S.sm, borderTopWidth: 1, borderTopColor: C.ink, paddingTop: S.xs }}>
+      <View style={{ flexDirection: 'row', gap: S.sm, paddingTop: S.sm }}>
         {shown.map((x) => (
           <Text key={x.id} style={[T.meta, { flex: 1, textAlign: 'center', fontSize: 12 }]}>
             {shortDate(x.at)}
@@ -156,14 +162,15 @@ function GrowthChart({ weighings }: { weighings: Weighing[] }) {
 const useSt = makeStyles((C) => StyleSheet.create({
   body: { padding: S.lg, paddingBottom: S.xxl, width: '100%', maxWidth: 720, alignSelf: 'center' },
   unit: { fontSize: 24, fontWeight: '600', letterSpacing: 0, color: C.ink2 },
-  tr: { flexDirection: 'row', alignItems: 'center', minHeight: 48, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: C.rule },
+  tr: { flexDirection: 'row', alignItems: 'center', minHeight: 44 },
+  hero: { marginTop: S.md, padding: S.xl, borderRadius: R.lg },
   cDate: { flex: 1.6 },
   cNum: { flex: 1, textAlign: 'right' },
   saleLine: { position: 'absolute', left: 0, right: 0, borderTopWidth: 1, borderTopColor: C.ochre, borderStyle: 'dashed' },
   saleText: { fontSize: 12, fontWeight: '600', color: C.ochre },
   legend: { flexDirection: 'row', alignItems: 'center', gap: S.sm, alignSelf: 'flex-end' },
   legendKey: { width: 20, borderTopWidth: 1, borderTopColor: C.ochre, borderStyle: 'dashed' },
-  col: { width: '70%', maxWidth: 36, backgroundColor: C.rule },
+  col: { width: '70%', maxWidth: 36, backgroundColor: C.surface2, borderRadius: 8 },
   colVal: { fontSize: 11, fontWeight: '600', color: C.ink2, marginBottom: 2, fontVariant: ['tabular-nums'] },
-  footer: { width: '100%', maxWidth: 720, alignSelf: 'center', padding: S.lg, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: C.rule },
+  footer: { width: '100%', maxWidth: 720, alignSelf: 'center', padding: S.lg },
 }));

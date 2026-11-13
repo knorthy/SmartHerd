@@ -5,7 +5,7 @@ import { TabScreen } from '@/components/screen';
 import { Button, Empty, I, Icon } from '@/components/ui';
 import { ago, kg, stageLabel } from '@/lib/format';
 import { latest, useHerd } from '@/lib/herd';
-import { S, makeStyles, useTheme } from '@/theme';
+import { makeStyles, R, S, useTheme } from '@/theme';
 
 export default function Goats() {
   const { C, T } = useTheme();
@@ -17,11 +17,11 @@ export default function Goats() {
     <TabScreen
       title="Goats"
       status={<Text style={T.meta}>{goats.length} in your herd</Text>}
-      action={<Button label="Register" variant="outlined" icon={I.plus} onPress={() => router.push('/goat/new')} style={{ minHeight: 48, paddingHorizontal: S.lg }} />}>
+      action={<Button label="Register" variant="tonal" icon={I.plus} onPress={() => router.push('/goat/new')} style={{ minHeight: 48, paddingHorizontal: S.lg }} />}>
       {goats.length === 0 ? (
         <Empty title="Your herd is empty" body="Register each goat once with a name and ear tag. Every weighing is then kept on its record." />
       ) : (
-        <View accessibilityRole="list" style={{ borderTopWidth: 1, borderTopColor: C.ink }}>
+        <View accessibilityRole="list" style={{ gap: S.sm }}>
           {sorted.map((g) => {
             const w = latest(g);
             return (
@@ -29,7 +29,10 @@ export default function Goats() {
                 key={g.id}
                 accessibilityRole="button"
                 onPress={() => router.push({ pathname: '/goat/[id]', params: { id: g.id } })}
-                style={({ pressed }) => [st.row, pressed && { backgroundColor: C.greenTint }]}>
+                style={({ pressed }) => [st.row, pressed && { transform: [{ scale: 0.985 }], opacity: 0.9 }]}>
+                <View style={st.avatar}>
+                  <Text style={st.avatarText}>{g.name.slice(0, 1).toUpperCase()}</Text>
+                </View>
                 <View style={{ flex: 1, gap: 2 }}>
                   <Text style={[T.body, { fontWeight: '600' }]} numberOfLines={1}>
                     {g.name} <Text style={[T.meta, { fontVariant: ['tabular-nums'] }]}>· {g.tag}</Text>
@@ -56,8 +59,11 @@ const useSt = makeStyles((C) => StyleSheet.create({
     gap: S.md,
     minHeight: 64,
     paddingVertical: S.md,
-    paddingHorizontal: S.sm,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: C.rule,
+    paddingHorizontal: S.lg,
+    backgroundColor: C.surface,
+    borderRadius: R.md,
+    boxShadow: '0 1px 2px rgba(10, 30, 20, 0.04), 0 4px 16px rgba(10, 30, 20, 0.04)',
   },
+  avatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: C.greenTint, alignItems: 'center', justifyContent: 'center' },
+  avatarText: { fontSize: 18, fontWeight: '700', color: C.green },
 }));

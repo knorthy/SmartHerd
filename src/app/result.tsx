@@ -6,11 +6,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Figure } from '@/components/figure';
 import { Tape } from '@/components/tape';
-import { Button, DataRow, Section } from '@/components/ui';
+import { Button, DataRow, Panel, Section } from '@/components/ui';
 import { SALE_WEIGHT_KG, simulateEstimate, STAGES, type GrowthStage } from '@/lib/estimate';
 import { cm, kg, shortDate, stageLabel } from '@/lib/format';
 import { addWeighing, latest, useHerd } from '@/lib/herd';
-import { S, makeStyles, useTheme } from '@/theme';
+import { makeStyles, R, S, useTheme } from '@/theme';
 
 type Params = { goatId: string; stage: string; side: string; top: string; distance: string };
 
@@ -28,7 +28,7 @@ export default function Result() {
     return (
       <View style={[st.body, { flex: 1 }]}>
         <Text style={T.heading}>This goat is no longer registered.</Text>
-        <Button label="Home" variant="outlined" onPress={() => leave()} style={{ marginTop: S.lg }} />
+        <Button label="Home" variant="tonal" onPress={() => leave()} style={{ marginTop: S.lg }} />
       </View>
     );
   }
@@ -61,7 +61,8 @@ export default function Result() {
           {goat.name} · {goat.tag} · {stageLabel(stage)}
         </Text>
 
-        <View accessible accessibilityLabel={`Estimated Weight ${kg(est.weight)} kilograms`} style={{ marginTop: S.lg }}>
+        <Panel style={st.hero}>
+        <View accessible accessibilityLabel={`Estimated Weight ${kg(est.weight)} kilograms`}>
           <Text style={T.label}>Estimated Weight</Text>
           <Text style={T.display}>
             <CountUp to={est.weight} />
@@ -79,6 +80,7 @@ export default function Result() {
           )}
           {diff !== null && prev ? ` · ${diff >= 0 ? '+' : '−'}${kg(Math.abs(diff))} kg since ${shortDate(prev.at)}` : ''}
         </Text>
+        </Panel>
 
         <View style={st.figures}>
           <Figure
@@ -101,7 +103,7 @@ export default function Result() {
         </Text>
       </ScrollView>
       <View style={st.footer}>
-        <Button label="Home" variant="outlined" onPress={home} style={{ flex: 1 }} />
+        <Button label="Home" variant="tonal" onPress={home} style={{ flex: 1 }} />
         <Button label="Save Goat" onPress={save} style={{ flex: 2 }} />
       </View>
     </SafeAreaView>
@@ -111,8 +113,9 @@ export default function Result() {
 const useSt = makeStyles((C) => StyleSheet.create({
   body: { padding: S.lg, paddingBottom: S.xxl, width: '100%', maxWidth: 720, alignSelf: 'center' },
   unit: { fontSize: 24, fontWeight: '600', letterSpacing: 0, color: C.ink2 },
+  hero: { marginTop: S.md, padding: S.xl, paddingVertical: S.xl, borderRadius: R.lg },
   figures: { gap: S.xl, marginTop: S.xl, marginBottom: S.xxl },
-  footer: { width: '100%', maxWidth: 720, alignSelf: 'center', flexDirection: 'row', gap: S.md, padding: S.lg, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: C.rule },
+  footer: { width: '100%', maxWidth: 720, alignSelf: 'center', flexDirection: 'row', gap: S.md, padding: S.lg },
 }));
 
 /** Back to the tabs; on web a deep-linked result has nothing beneath it to dismiss. */
