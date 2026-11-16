@@ -52,5 +52,6 @@ export function simulateEstimate(stage: GrowthStage): Measurements & { weight: n
 if (__DEV__) {
   // self-check: a circle's perimeter is exact, and the formula's units line up
   console.assert(Math.abs(heartGirth(20, 20) - Math.PI * 20) < 1e-9, 'heartGirth circle');
-  console.assert(Math.abs(schaeffer(104.11, 100) - 100) < 0.01, 'schaeffer');
+  // girth² × length ÷ 10840 is exactly 100 kg when girth = √10840 and length = 100
+  console.assert(Math.abs(schaeffer(Math.sqrt(10840), 100) - 100) < 1e-9, 'schaeffer');
 }

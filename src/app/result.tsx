@@ -1,4 +1,4 @@
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Alert, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useReducedMotion } from 'react-native-reanimated';
@@ -7,36 +7,53 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Figure } from '@/components/figure';
 import { Tape } from '@/components/tape';
 import { Button, DataRow, Panel, Section } from '@/components/ui';
-import { SALE_WEIGHT_KG, simulateEstimate, STAGES, type GrowthStage } from '@/lib/estimate';
-import { cm, kg, shortDate, stageLabel } from '@/lib/format';
-import { addWeighing, latest, useHerd } from '@/lib/herd';
+import { simulateEstimate, STAGES, type GrowthStage } from '@/lib/estimate';
+import { cm, kg, shortDate, stageLabel, time } from '@/lib/format';
+import { addWeighing, latest, removeWeighing, restoreWeighing, useHerd, useSaleWeight } from '@/lib/herd';
+import { deletePhotos } from '@/lib/photos';
+import { showToast } from '@/lib/toast';
 import { makeStyles, R, S, useTheme } from '@/theme';
 
-type Params = { goatId: string; stage: string; side: string; top: string; distance: string };
+type Params = { goatId: string; stage?: string; side?: string; top?: string; distance?: string; weighingId?: string };
 
+/** A fresh estimate to save, or (with `weighingId`) a saved weighing reopened from the goat record. */
 export default function Result() {
+  const saleKg = useSaleWeight();
   const { C, T } = useTheme();
   const st = useSt();
   const p = useLocalSearchParams<Params>();
-  const stage: GrowthStage = STAGES.includes(p.stage as GrowthStage) ? (p.stage as GrowthStage) : 'adult';
-  const [est] = useState(() => simulateEstimate(stage));
+  const [fresh] = useState(() =>
+    simulateEstimate(STAGES.includes(p.stage as GrowthStage) ? (p.stage as GrowthStage) : 'adult'),
+  );
+  const [saving, setSaving] = useState(false);
   const { goats } = useHerd();
   const goat = goats.find((g) => g.id === p.goatId);
-  const prev = goat && latest(goat);
+  const savedIndex = p.weighingId && goat ? goat.weighings.findIndex((w) => w.id === p.weighingId) : -1;
+  const saved = savedIndex >= 0 ? goat!.weighings[savedIndex] : undefined;
+  const viewing = !!p.weighingId;
 
-  if (!goat) {
+  if (!goat || (viewing && !saved)) {
     return (
       <View style={[st.body, { flex: 1 }]}>
-        <Text style={T.heading}>This goat is no longer registered.</Text>
-        <Button label="Home" variant="tonal" onPress={() => leave()} style={{ marginTop: S.lg }} />
+        <Text style={T.heading}>{goat ? 'This weighing was deleted.' : 'This goat is no longer registered.'}</Text>
+        <Button label="Back" variant="tonal" onPress={() => (router.canGoBack() ? router.back() : leave())} style={{ marginTop: S.lg }} />
       </View>
     );
   }
 
-  const save = () => {
-    addWeighing(goat.id, { ...est, stage, distanceCm: Number(p.distance) || 0, sideUri: p.side, topUri: p.top });
+  const est = saved ?? fresh;
+  const stage: GrowthStage = saved?.stage ?? (STAGES.includes(p.stage as GrowthStage) ? (p.stage as GrowthStage) : 'adult');
+  const side = saved ? saved.sideUri : p.side;
+  const top = saved ? saved.topUri : p.top;
+  const distance = saved ? saved.distanceCm : Number(p.distance) || 0;
+  const prev = saved ? goat.weighings[savedIndex - 1] : latest(goat);
+
+  const save = async () => {
+    setSaving(true);
+    await addWeighing(goat.id, { ...fresh, stage, distanceCm: distance, sideUri: p.side, topUri: p.top });
     leave();
     router.push({ pathname: '/goat/[id]', params: { id: goat.id } });
+    showToast({ message: `Saved to ${goat.name}’s record` });
   };
 
   const home = () => {
@@ -51,11 +68,23 @@ export default function Result() {
     ]);
   };
 
+  const remove = () => {
+    const undo = removeWeighing(goat.id, saved!.id);
+    router.back();
+    if (!undo) return;
+    showToast({
+      message: `Weighing from ${shortDate(undo.weighing.at)} deleted`,
+      action: { label: 'Undo', onPress: () => restoreWeighing(undo) },
+      onExpire: () => deletePhotos([undo.weighing.sideUri, undo.weighing.topUri]),
+    });
+  };
+
   const diff = prev ? est.weight - prev.weight : null;
-  const toSale = SALE_WEIGHT_KG - est.weight;
+  const toSale = saleKg - est.weight;
 
   return (
     <SafeAreaView edges={['bottom']} style={{ flex: 1, backgroundColor: C.paper }}>
+      {saved && <Stack.Screen options={{ title: `Weighing · ${shortDate(saved.at)}`, headerBackVisible: true, gestureEnabled: true }} />}
       <ScrollView contentContainerStyle={st.body}>
         <Text style={T.meta}>
           {goat.name} · {goat.tag} · {stageLabel(stage)}
@@ -63,20 +92,20 @@ export default function Result() {
 
         <Panel style={st.hero}>
         <View accessible accessibilityLabel={`Estimated Weight ${kg(est.weight)} kilograms`}>
-          <Text style={T.label}>Estimated Weight</Text>
+          <Text style={T.label}>Estimated Weight{saved ? ` · ${time(saved.at)}` : ''}</Text>
           <Text style={T.display}>
-            <CountUp to={est.weight} />
+            {saved ? kg(est.weight) : <CountUp to={est.weight} />}
             <Text style={st.unit}> kg</Text>
           </Text>
         </View>
         <View style={{ marginTop: S.lg }}>
-          <Tape kg={est.weight} animate />
+          <Tape kg={est.weight} animate={!saved} />
         </View>
         <Text style={[T.meta, { marginTop: S.xs }]}>
           {toSale <= 0 ? (
             <Text style={{ color: C.ochre, fontWeight: '700' }}>At sale weight</Text>
           ) : (
-            `${kg(toSale)} kg below the ${SALE_WEIGHT_KG} kg sale weight`
+            `${kg(toSale)} kg below the ${saleKg} kg sale weight`
           )}
           {diff !== null && prev ? ` · ${diff >= 0 ? '+' : '−'}${kg(Math.abs(diff))} kg since ${shortDate(prev.at)}` : ''}
         </Text>
@@ -84,12 +113,12 @@ export default function Result() {
 
         <View style={st.figures}>
           <Figure
-            uri={p.side}
+            uri={side}
             caption="Fig. 1 — Side view"
             horizontal={{ label: 'Body Length', value: `${cm(est.bodyLength)} cm` }}
             vertical={{ label: 'Chest Height', value: `${cm(est.chestHeight)} cm` }}
           />
-          <Figure uri={p.top} caption="Fig. 2 — Top view" horizontal={{ label: 'Chest Width', value: `${cm(est.chestWidth)} cm` }} />
+          <Figure uri={top} caption="Fig. 2 — Top view" horizontal={{ label: 'Chest Width', value: `${cm(est.chestWidth)} cm` }} />
         </View>
 
         <Section title="Measurements" aside="cm">
@@ -99,12 +128,21 @@ export default function Result() {
           <DataRow label="Heart Girth" value={cm(est.heartGirth)} />
         </Section>
         <Text style={[T.caption, { marginTop: S.md }]}>
-          Simulated estimate. Heart girth from chest height and width (Ramanujan’s ellipse approximation); weight by Schaeffer’s formula, girth² × length ÷ 10,840. Camera distance {p.distance} cm.
+          Simulated estimate. Heart girth from chest height and width (Ramanujan’s ellipse approximation); weight by Schaeffer’s formula, girth² × length ÷ 10,840. Camera distance {distance} cm.
         </Text>
       </ScrollView>
       <View style={st.footer}>
-        <Button label="Home" variant="tonal" onPress={home} style={{ flex: 1 }} />
-        <Button label="Save Goat" onPress={save} style={{ flex: 2 }} />
+        {saved ? (
+          <>
+            <Button label="Delete" variant="danger" onPress={remove} style={{ flex: 1 }} />
+            <Button label="Done" variant="tonal" onPress={() => router.back()} style={{ flex: 2 }} />
+          </>
+        ) : (
+          <>
+            <Button label="Home" variant="tonal" onPress={home} style={{ flex: 1 }} disabled={saving} />
+            <Button label={saving ? 'Saving…' : 'Save Goat'} onPress={save} style={{ flex: 2 }} disabled={saving} />
+          </>
+        )}
       </View>
     </SafeAreaView>
   );

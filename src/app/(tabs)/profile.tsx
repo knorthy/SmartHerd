@@ -1,18 +1,19 @@
 import Constants from 'expo-constants';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Platform, StyleSheet, Text, View } from 'react-native';
+import { Alert, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { LogoMark } from '@/components/logo';
 import { TabScreen } from '@/components/screen';
-import { Button, DataRow, Field, I, Section, Segmented } from '@/components/ui';
-import { loadDemoHerd, resetHerd, setOnboarded, setProfile, setTheme, useHerd } from '@/lib/herd';
+import { Button, DataRow, Field, I, Icon, Section, Segmented } from '@/components/ui';
+import { loadDemoHerd, resetHerd, setOnboarded, setProfile, setTheme, useHerd, setSaleWeight, useSaleWeight } from '@/lib/herd';
 import { makeStyles, S, useTheme, type ThemePref } from '@/theme';
 
 export default function Profile() {
   const { T } = useTheme();
   const st = useSt();
   const herd = useHerd();
+  const saleKg = useSaleWeight();
   const [name, setName] = useState(herd.profile?.name ?? '');
   const [coop, setCoop] = useState(herd.profile?.coop ?? '');
   const dirty = name.trim() !== (herd.profile?.name ?? '') || coop.trim() !== (herd.profile?.coop ?? '');
@@ -63,6 +64,16 @@ export default function Profile() {
         </View>
       </Section>
 
+      <Section title="Herd" style={st.section}>
+        <View style={st.stepRow}>
+          <View style={{ flex: 1, gap: 2 }}>
+            <Text style={T.body}>Sale weight</Text>
+            <Text style={T.meta}>Goats at or above this are marked Ready.</Text>
+          </View>
+          <Stepper value={saleKg} onChange={setSaleWeight} />
+        </View>
+      </Section>
+
       <Section title="Appearance" style={st.section}>
         <View style={{ paddingVertical: S.md }}>
           <Segmented<ThemePref>
@@ -105,6 +116,36 @@ export default function Profile() {
   );
 }
 
+const MIN_SALE = 15;
+const MAX_SALE = 80;
+
+function Stepper({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+  const { C, T } = useTheme();
+  const st = useSt();
+  const step = (d: number) => onChange(Math.min(MAX_SALE, Math.max(MIN_SALE, value + d)));
+  return (
+    <View
+      style={st.stepper}
+      accessible
+      accessibilityRole="adjustable"
+      accessibilityLabel="Sale weight"
+      accessibilityValue={{ min: MIN_SALE, max: MAX_SALE, now: value, text: `${value} kilograms` }}
+      accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
+      onAccessibilityAction={(e) => step(e.nativeEvent.actionName === 'increment' ? 1 : -1)}>
+      <Pressable onPress={() => step(-1)} disabled={value <= MIN_SALE} style={st.stepBtn} hitSlop={4}>
+        <Icon name={I.minus} size={20} color={value <= MIN_SALE ? C.rule : C.green} />
+      </Pressable>
+      <Text style={[T.bodyNum, st.stepValue]}>
+        {value}
+        <Text style={T.meta}> kg</Text>
+      </Text>
+      <Pressable onPress={() => step(1)} disabled={value >= MAX_SALE} style={st.stepBtn} hitSlop={4}>
+        <Icon name={I.plus} size={20} color={value >= MAX_SALE ? C.rule : C.green} />
+      </Pressable>
+    </View>
+  );
+}
+
 const useSt = makeStyles((C) =>
   StyleSheet.create({
     identity: { flexDirection: 'row', alignItems: 'center', gap: S.lg, paddingBottom: S.lg },
@@ -118,6 +159,10 @@ const useSt = makeStyles((C) =>
     },
     initials: { fontSize: 22, fontWeight: '700', color: C.green, letterSpacing: 0.5 },
     section: { marginTop: S.xxl },
+    stepRow: { flexDirection: 'row', alignItems: 'center', gap: S.md, paddingVertical: S.md },
+    stepper: { flexDirection: 'row', alignItems: 'center', backgroundColor: C.surface2, borderRadius: 26, padding: 2 },
+    stepBtn: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
+    stepValue: { minWidth: 64, textAlign: 'center', fontWeight: '700', fontSize: 17 },
     actions: { flexDirection: 'row', marginTop: S.md, marginLeft: -S.md },
   }),
 );

@@ -6,17 +6,22 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { LoadingScreen } from '@/components/loading-screen';
 import { SpotlightTour } from '@/components/spotlight-tour';
-import { setOnboarded, useHerd } from '@/lib/herd';
+import { ToastHost } from '@/components/toast-host';
+import { markLaunched, setOnboarded, useHerd } from '@/lib/herd';
 import { useTheme } from '@/theme';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
 export default function RootLayout() {
   const { C, scheme } = useTheme();
-  const { onboarded = false } = useHerd();
+  const { onboarded = false, launched = false } = useHerd();
+  const [quick] = useState(launched);
   const pathname = usePathname();
   const [loading, setLoading] = useState(true);
-  const loaded = useCallback(() => setLoading(false), []);
+  const loaded = useCallback(() => {
+    setLoading(false);
+    markLaunched();
+  }, []);
   const toured = useCallback(() => setOnboarded(true), []);
 
   return (
@@ -36,8 +41,9 @@ export default function RootLayout() {
         <Stack.Screen name="goat/new" options={{ title: 'Register goat', presentation: 'modal' }} />
         <Stack.Screen name="goat/[id]" options={{ title: 'Goat record' }} />
       </Stack>
+      <ToastHost />
       {!loading && !onboarded && pathname === '/' && <SpotlightTour onDone={toured} />}
-      {loading && <LoadingScreen onDone={loaded} />}
+      {loading && <LoadingScreen onDone={loaded} quick={quick} />}
     </GestureHandlerRootView>
   );
 }

@@ -2,7 +2,10 @@ import './storage';
 
 import { useSyncExternalStore } from 'react';
 
+import { deletePhotos, keepPhoto } from './photos';
 import { SALE_WEIGHT_KG, simulateEstimate, type GrowthStage, type Measurements } from './estimate';
+
+export const DEFAULT_SALE_KG = SALE_WEIGHT_KG;
 
 export type Weighing = Measurements & {
   id: string;
@@ -33,6 +36,10 @@ type State = {
   onboarded?: boolean;
   theme?: 'system' | 'light' | 'dark';
   profile?: Profile;
+  /** Weight the cooperative sells at; set in Profile. */
+  saleWeight?: number;
+  /** Set after the first full loading animation has played. */
+  launched?: boolean;
 };
 
 const KEY = 'smartherd:v1';
@@ -73,11 +80,12 @@ export const latest = (g: Goat): Weighing | undefined => g.weighings[g.weighings
 export function daysToSale(g: Goat): number | null {
   const last = latest(g);
   if (!last) return null;
-  if (last.weight >= SALE_WEIGHT_KG) return 0;
+  const sale = state.saleWeight ?? DEFAULT_SALE_KG;
+  if (last.weight >= sale) return 0;
   const first = g.weighings[0];
   const rate = (last.weight - first.weight) / ((last.at - first.at) / 86_400_000);
   if (g.weighings.length < 2 || !(rate > 0)) return null;
-  return Math.ceil((SALE_WEIGHT_KG - last.weight) / rate);
+  return Math.ceil((sale - last.weight) / rate);
 }
 
 /** Ready goats first, then soonest projected, then unprojectable, then never weighed. */
@@ -86,7 +94,8 @@ export function rankForSale(goats: Goat[]) {
     const d = daysToSale(g);
     return d === null ? (latest(g) ? 1e6 : 2e6) : d;
   };
-  return [...goats].sort((a, b) => key(a) - key(b));
+  // ties (e.g. every ready goat is 0 days) go heaviest first
+  return [...goats].sort((a, b) => key(a) - key(b) || (latest(b)?.weight ?? 0) - (latest(a)?.weight ?? 0));
 }
 
 export function addGoat(goat: Omit<Goat, 'id' | 'weighings'>) {
@@ -95,18 +104,54 @@ export function addGoat(goat: Omit<Goat, 'id' | 'weighings'>) {
   return g;
 }
 
-export function addWeighing(goatId: string, w: Omit<Weighing, 'id' | 'synced' | 'at'>) {
+/** Saves a weighing; photos are copied into app storage first so the record keeps them. Returns its id. */
+export async function addWeighing(goatId: string, w: Omit<Weighing, 'id' | 'synced' | 'at'>) {
+  const id = newId();
+  const [sideUri, topUri] = await Promise.all([
+    w.sideUri ? keepPhoto(w.sideUri, `${id}-side`) : undefined,
+    w.topUri ? keepPhoto(w.topUri, `${id}-top`) : undefined,
+  ]);
   set({
     ...state,
     goats: state.goats.map((g) =>
-      g.id === goatId
-        ? { ...g, stage: w.stage, weighings: [...g.weighings, { ...w, id: newId(), at: Date.now(), synced: false }] }
-        : g,
+      g.id === goatId ? { ...g, stage: w.stage, weighings: [...g.weighings, { ...w, sideUri, topUri, id, at: Date.now(), synced: false }] } : g,
     ),
+  });
+  return id;
+}
+
+export function tagTaken(tag: string, exceptGoatId?: string) {
+  return state.goats.some((g) => g.tag === tag && g.id !== exceptGoatId);
+}
+
+export function updateGoat(goatId: string, patch: Partial<Pick<Goat, 'name' | 'tag' | 'member' | 'stage'>>) {
+  set({ ...state, goats: state.goats.map((g) => (g.id === goatId ? { ...g, ...patch } : g)) });
+}
+
+/** Removes one weighing and returns what `restoreWeighing` needs to undo it. Photos are kept until the undo window closes. */
+export function removeWeighing(goatId: string, weighingId: string) {
+  const g = state.goats.find((x) => x.id === goatId);
+  const index = g?.weighings.findIndex((w) => w.id === weighingId) ?? -1;
+  if (!g || index < 0) return null;
+  const weighing = g.weighings[index];
+  set({ ...state, goats: state.goats.map((x) => (x.id === goatId ? { ...x, weighings: x.weighings.filter((w) => w.id !== weighingId) } : x)) });
+  return { goatId, weighing, index };
+}
+
+export function restoreWeighing({ goatId, weighing, index }: { goatId: string; weighing: Weighing; index: number }) {
+  set({
+    ...state,
+    goats: state.goats.map((g) => {
+      if (g.id !== goatId) return g;
+      const ws = [...g.weighings];
+      ws.splice(Math.min(index, ws.length), 0, weighing);
+      return { ...g, weighings: ws };
+    }),
   });
 }
 
 export function deleteGoat(goatId: string) {
+  deletePhotos(state.goats.find((g) => g.id === goatId)?.weighings.flatMap((w) => [w.sideUri, w.topUri]) ?? []);
   set({ ...state, goats: state.goats.filter((g) => g.id !== goatId) });
 }
 
@@ -124,7 +169,8 @@ export function unsyncedCount(s: State) {
 }
 
 export function resetHerd() {
-  set({ ...empty, onboarded: state.onboarded, theme: state.theme, profile: state.profile });
+  deletePhotos(state.goats.flatMap((g) => g.weighings.flatMap((w) => [w.sideUri, w.topUri])));
+  set({ ...empty, onboarded: state.onboarded, theme: state.theme, profile: state.profile, saleWeight: state.saleWeight, launched: state.launched });
 }
 
 const DAY = 86_400_000;
@@ -162,4 +208,16 @@ export function setTheme(theme: 'system' | 'light' | 'dark') {
 
 export function setProfile(profile: Profile) {
   set({ ...state, profile });
+}
+
+export function useSaleWeight() {
+  return useHerd().saleWeight ?? DEFAULT_SALE_KG;
+}
+
+export function setSaleWeight(kg: number) {
+  set({ ...state, saleWeight: kg });
+}
+
+export function markLaunched() {
+  if (!state.launched) set({ ...state, launched: true });
 }

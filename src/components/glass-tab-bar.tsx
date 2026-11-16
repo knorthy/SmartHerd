@@ -118,7 +118,7 @@ const useSt = makeStyles((C) =>
     row: { flex: 1, flexDirection: 'row', paddingHorizontal: S.xs },
     slot: { flex: 1 },
     item: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 2 },
-    label: { fontSize: 11, fontWeight: '600', letterSpacing: 0.2 },
+    label: { fontSize: 12, fontWeight: '600' },
     pill: { position: 'absolute', left: S.xs, top: 8, bottom: 8, borderRadius: 26, backgroundColor: C.greenTint },
     action: { width: 52, height: 52, borderRadius: 26, backgroundColor: C.green, alignItems: 'center', justifyContent: 'center' },
   }),

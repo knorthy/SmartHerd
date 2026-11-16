@@ -13,6 +13,8 @@ const light = {
   green: '#0F5C45',
   onGreen: '#FFFFFF',
   hero: '#0F5C45',
+  // accent on the inverted (ink) snackbar
+  inverseAccent: '#7FD3AF',
   onHero: '#FFFFFF',
   greenPressed: '#0B4634',
   greenTint: '#E7EFEA',
@@ -37,6 +39,7 @@ const dark: Palette = {
   green: '#5CC29A',
   onGreen: '#06120D',
   hero: '#123B2E',
+  inverseAccent: '#0F5C45',
   onHero: '#E6F3EC',
   greenPressed: '#49A883',
   greenTint: '#16261F',

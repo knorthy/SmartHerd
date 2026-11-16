@@ -1,15 +1,16 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
-import { Alert, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image } from 'expo-image';
+import { Alert, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Tape } from '@/components/tape';
-import { Button, I, Panel, Section } from '@/components/ui';
-import { SALE_WEIGHT_KG } from '@/lib/estimate';
-import { ago, cm, kg, shortDate, stageLabel } from '@/lib/format';
-import { daysToSale, deleteGoat, latest, useHerd, type Weighing } from '@/lib/herd';
+import { Button, I, Icon, Panel, Section } from '@/components/ui';
+import { ago, cm, kg, shortDate, stageLabel, time } from '@/lib/format';
+import { daysToSale, deleteGoat, latest, useHerd, type Weighing, useSaleWeight } from '@/lib/herd';
 import { makeStyles, R, S, useTheme } from '@/theme';
 
 export default function GoatRecord() {
+  const saleKg = useSaleWeight();
   const { C, T } = useTheme();
   const st = useSt();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -46,7 +47,21 @@ export default function GoatRecord() {
 
   return (
     <SafeAreaView edges={['bottom']} style={{ flex: 1, backgroundColor: C.paper }}>
-      <Stack.Screen options={{ title: goat.name }} />
+      <Stack.Screen
+        options={{
+          title: goat.name,
+          headerRight: () => (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Edit ${goat.name}`}
+              onPress={() => router.push({ pathname: '/goat/new', params: { id: goat.id } })}
+              hitSlop={8}
+              style={st.edit}>
+              <Text style={[T.body, { color: C.green, fontWeight: '600' }]}>Edit</Text>
+            </Pressable>
+          ),
+        }}
+      />
       <ScrollView contentContainerStyle={st.body}>
         <Text style={T.meta}>
           {goat.tag} · {stageLabel(goat.stage)} · {goat.member}
@@ -70,7 +85,7 @@ export default function GoatRecord() {
               ) : d === null ? (
                 'weigh again to project sale date'
               ) : (
-                `about ${d} days to ${SALE_WEIGHT_KG} kg`
+                `about ${d} days to ${saleKg} kg`
               )}
             </Text>
             <View style={{ marginTop: S.lg }}>
@@ -82,24 +97,12 @@ export default function GoatRecord() {
               <GrowthChart weighings={goat.weighings} />
             </Section>
 
-            <Section title="Weighings" style={{ marginTop: S.xxl }}>
-              <View style={st.tr}>
-                <Text style={[T.label, st.cDate]}>Date</Text>
-                <Text style={[T.label, st.cNum]}>kg</Text>
-                <Text style={[T.label, st.cNum]}>Girth cm</Text>
-                <Text style={[T.label, st.cNum]}>Length cm</Text>
+            <Section title="Weighings" aside="Tap to open" style={{ marginTop: S.xxl }} bare>
+              <View style={{ gap: S.sm }}>
+                {[...goat.weighings].reverse().map((x) => (
+                  <WeighingRow key={x.id} goatId={goat.id} w={x} />
+                ))}
               </View>
-              {[...goat.weighings].reverse().map((x) => (
-                <View key={x.id} style={st.tr}>
-                  <Text style={[T.bodyNum, st.cDate]}>
-                    {shortDate(x.at)}
-                    {!x.synced ? <Text style={T.meta}> · not synced</Text> : null}
-                  </Text>
-                  <Text style={[T.bodyNum, st.cNum, { fontWeight: '600' }]}>{kg(x.weight)}</Text>
-                  <Text style={[T.bodyNum, st.cNum]}>{cm(x.heartGirth)}</Text>
-                  <Text style={[T.bodyNum, st.cNum]}>{cm(x.bodyLength)}</Text>
-                </View>
-              ))}
             </Section>
           </>
         ) : (
@@ -118,15 +121,51 @@ export default function GoatRecord() {
   );
 }
 
+/** One saved weighing: photo thumbnail, date, weight and girth; opens the full result plate. */
+function WeighingRow({ goatId, w }: { goatId: string; w: Weighing }) {
+  const { C, T } = useTheme();
+  const st = useSt();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`Weighing on ${shortDate(w.at)}, ${kg(w.weight)} kilograms. Open`}
+      onPress={() => router.push({ pathname: '/result', params: { goatId, weighingId: w.id } })}
+      style={({ pressed }) => [st.wRow, pressed && { transform: [{ scale: 0.985 }], opacity: 0.9 }]}>
+      <View style={st.thumb}>
+        {w.sideUri ? (
+          <Image source={{ uri: w.sideUri }} style={StyleSheet.absoluteFill} contentFit="cover" />
+        ) : (
+          <Icon name={I.camera} size={20} color={C.ink2} />
+        )}
+      </View>
+      <View style={{ flex: 1, gap: 2 }}>
+        <Text style={[T.body, { fontWeight: '600' }]}>
+          {shortDate(w.at)}
+          <Text style={T.meta}> · {time(w.at)}</Text>
+        </Text>
+        <Text style={T.meta} numberOfLines={1}>
+          Girth {cm(w.heartGirth)} · Length {cm(w.bodyLength)} cm{w.synced ? '' : ' · not synced'}
+        </Text>
+      </View>
+      <Text style={st.wKg}>
+        {kg(w.weight)}
+        <Text style={T.meta}> kg</Text>
+      </Text>
+      <Icon name={I.chevron} size={18} color={C.ink2} />
+    </Pressable>
+  );
+}
+
 const CHART_H = 160;
 
 /** Weight per weighing as columns against the sale-weight line; the latest column in green. */
 function GrowthChart({ weighings }: { weighings: Weighing[] }) {
+  const saleKg = useSaleWeight();
   const { C, T } = useTheme();
   const st = useSt();
   const shown = weighings.slice(-8);
-  const max = Math.max(SALE_WEIGHT_KG * 1.15, ...shown.map((x) => x.weight));
-  const saleY = (SALE_WEIGHT_KG / max) * CHART_H;
+  const max = Math.max(saleKg * 1.15, ...shown.map((x) => x.weight));
+  const saleY = (saleKg / max) * CHART_H;
   return (
     <View
       style={{ marginTop: S.md }}
@@ -134,7 +173,7 @@ function GrowthChart({ weighings }: { weighings: Weighing[] }) {
       accessibilityLabel={`Weights over time: ${shown.map((x) => `${shortDate(x.at)} ${kg(x.weight)} kilograms`).join(', ')}`}>
       <View style={st.legend}>
         <View style={st.legendKey} />
-        <Text style={st.saleText}>Sale weight {SALE_WEIGHT_KG} kg</Text>
+        <Text style={st.saleText}>Sale weight {saleKg} kg</Text>
       </View>
       <View style={{ height: CHART_H, flexDirection: 'row', alignItems: 'flex-end', gap: S.sm, marginTop: S.lg }}>
         <View style={[st.saleLine, { bottom: saleY }]} />
@@ -162,10 +201,19 @@ function GrowthChart({ weighings }: { weighings: Weighing[] }) {
 const useSt = makeStyles((C) => StyleSheet.create({
   body: { padding: S.lg, paddingBottom: S.xxl, width: '100%', maxWidth: 720, alignSelf: 'center' },
   unit: { fontSize: 24, fontWeight: '600', letterSpacing: 0, color: C.ink2 },
-  tr: { flexDirection: 'row', alignItems: 'center', minHeight: 44 },
+  edit: { minHeight: 44, minWidth: 48, paddingHorizontal: S.sm, alignItems: 'center', justifyContent: 'center' },
+  wRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: S.md,
+    padding: S.md,
+    backgroundColor: C.surface,
+    borderRadius: R.md,
+    boxShadow: '0 1px 2px rgba(10, 30, 20, 0.04), 0 4px 16px rgba(10, 30, 20, 0.04)',
+  },
+  thumb: { width: 56, height: 56, borderRadius: R.sm, overflow: 'hidden', backgroundColor: C.surface2, alignItems: 'center', justifyContent: 'center' },
+  wKg: { fontSize: 18, fontWeight: '700', color: C.ink, fontVariant: ['tabular-nums'] },
   hero: { marginTop: S.md, padding: S.xl, borderRadius: R.lg },
-  cDate: { flex: 1.6 },
-  cNum: { flex: 1, textAlign: 'right' },
   saleLine: { position: 'absolute', left: 0, right: 0, borderTopWidth: 1, borderTopColor: C.ochre, borderStyle: 'dashed' },
   saleText: { fontSize: 12, fontWeight: '600', color: C.ochre },
   legend: { flexDirection: 'row', alignItems: 'center', gap: S.sm, alignSelf: 'flex-end' },

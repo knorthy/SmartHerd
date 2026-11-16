@@ -30,6 +30,8 @@ export const I = {
   moon: { ios: 'moon', android: 'dark_mode', web: 'dark_mode' },
   auto: { ios: 'circle.lefthalf.filled', android: 'contrast', web: 'contrast' },
   tour: { ios: 'hand.point.up.left', android: 'touch_app', web: 'touch_app' },
+  search: { ios: 'magnifyingglass', android: 'search', web: 'search' },
+  close: { ios: 'xmark', android: 'close', web: 'close' },
 } satisfies Record<string, IconName>;
 
 type ButtonProps = {

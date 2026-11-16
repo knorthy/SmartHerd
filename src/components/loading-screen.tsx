@@ -22,10 +22,11 @@ const ease = Easing.out(Easing.exp);
  * Picks up from the native splash (same mark, same white) and "takes a measurement":
  * the mark settles, a dimension line draws across under the wordmark, then the screen lifts away.
  */
-export function LoadingScreen({ onDone }: { onDone: () => void }) {
+export function LoadingScreen({ onDone, quick }: { onDone: () => void; quick?: boolean }) {
   const { C, T } = useTheme();
   const st = useSt();
-  const reduce = useReducedMotion();
+  // after the first launch the measurement ritual is skipped: the mark shows and lifts away
+  const reduce = useReducedMotion() || !!quick;
   const mark = useSharedValue(reduce ? 1 : 0);
   const line = useSharedValue(reduce ? 1 : 0);
   const words = useSharedValue(reduce ? 1 : 0);
@@ -35,14 +36,14 @@ export function LoadingScreen({ onDone }: { onDone: () => void }) {
     SplashScreen.hideAsync().catch(() => {});
     const finish = () => onDone();
     if (reduce) {
-      out.set(withDelay(500, withTiming(0, { duration: 200 }, (ok) => ok && scheduleOnRN(finish))));
+      out.set(withDelay(quick ? 250 : 500, withTiming(0, { duration: 200 }, (ok) => ok && scheduleOnRN(finish))));
       return;
     }
     mark.set(withTiming(1, { duration: 520, easing: ease }));
     words.set(withDelay(260, withTiming(1, { duration: 420, easing: ease })));
     line.set(withDelay(420, withTiming(1, { duration: 700, easing: Easing.inOut(Easing.cubic) })));
     out.set(withSequence(withDelay(1450, withTiming(0, { duration: 320, easing: ease }, (ok) => ok && scheduleOnRN(finish)))));
-  }, [reduce, mark, line, words, out, onDone]);
+  }, [reduce, quick, mark, line, words, out, onDone]);
 
   const markStyle = useAnimatedStyle(() => ({
     opacity: mark.get(),

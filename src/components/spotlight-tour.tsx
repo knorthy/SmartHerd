@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
-import { AccessibilityInfo, BackHandler, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { AccessibilityInfo, BackHandler, Pressable, StyleSheet, Text, useWindowDimensions, View, type HostInstance } from 'react-native';
 import Animated, {
   Easing,
   FadeIn,
@@ -14,13 +14,12 @@ import Animated, {
 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { SALE_WEIGHT_KG } from '@/lib/estimate';
 import { makeStyles, S, useTheme } from '@/theme';
 
 import { tourTargets } from './tour-target';
 import { Button } from './ui';
 
-type Step = { target?: string; title: string; body: string; radius?: number };
+type Step = { target?: string; title: string; body: string; radius?: number; pad?: number };
 
 export const TOUR: Step[] = [
   {
@@ -30,6 +29,7 @@ export const TOUR: Step[] = [
   {
     target: 'weigh',
     radius: 32,
+    pad: 6,
     title: 'Weigh a goat',
     body: 'Start here. Choose a goat, take a side photo and a top photo, and get its Estimated Weight. No scale, no restraint.',
   },
@@ -37,7 +37,7 @@ export const TOUR: Step[] = [
     target: 'board-main',
     radius: 10,
     title: 'The sale board',
-    body: `Your herd ranked by days to ${SALE_WEIGHT_KG} kg. The thin tape under each name shows how close a goat is; ochre rows are ready to sell.`,
+    body: 'Your herd ranked by days to sale weight. The tape along each goat shows how close it is; ochre goats are ready to sell.',
   },
   {
     target: 'sync',
@@ -48,18 +48,21 @@ export const TOUR: Step[] = [
   {
     target: 'tab-goats',
     radius: 26,
+    pad: 0,
     title: 'Goats',
     body: 'Every registered goat with its growth record. Register new goats here.',
   },
   {
     target: 'tab-coop',
     radius: 26,
+    pad: 0,
     title: 'Co-op',
     body: 'Totals for the whole cooperative, goats per member, and SmartHerd Sync.',
   },
   {
     target: 'tab-profile',
     radius: 26,
+    pad: 0,
     title: 'Profile and settings',
     body: 'Your name, light or dark theme, and this tour again whenever you need it.',
   },
@@ -79,9 +82,13 @@ export function SpotlightTour({ onDone }: { onDone: () => void }) {
   const st = useSt();
   const reduce = useReducedMotion();
   const win = useWindowDimensions();
+  // The overlay measures itself: on Android edge-to-edge, measureInWindow and the overlay's own
+  // origin differ by the status bar, so targets are placed relative to the overlay, never the window.
+  const rootRef = useRef<HostInstance>(null);
+  const [box, setBox] = useState({ w: win.width, h: win.height });
   // the scrim is the border of one ring around the hole, just thick enough to cover the screen,
   // so the hole keeps true rounded corners on every platform
-  const BIG = Math.ceil(Math.max(win.width, win.height) * 1.05);
+  const BIG = Math.ceil(Math.max(box.w, box.h) * 1.05);
   const [i, setI] = useState(0);
   const [rect, setRect] = useState<Rect | null>(null);
   const [cardH, setCardH] = useState(220);
@@ -114,8 +121,8 @@ export function SpotlightTour({ onDone }: { onDone: () => void }) {
     const place = (r: Rect | null) => {
       setRect(r);
       const t = { duration: reduce ? 0 : 380, easing: ease };
-      const to = r ?? { x: win.width / 2, y: win.height / 2, w: 0, h: 0 };
-      const pad = r ? PAD : 0;
+      const to = r ?? { x: box.w / 2, y: box.h / 2, w: 0, h: 0 };
+      const pad = r ? (step.pad ?? PAD) : 0;
       hx.set(withTiming(to.x - pad, t));
       hy.set(withTiming(to.y - pad, t));
       hw.set(withTiming(to.w + pad * 2, t));
@@ -130,12 +137,23 @@ export function SpotlightTour({ onDone }: { onDone: () => void }) {
         else next();
         return;
       }
-      v.measureInWindow((x, y, w, h) => (w > 0 && h > 0 ? place({ x, y, w, h }) : tries++ < 6 ? (timer = setTimeout(measure, 120)) : next()));
+      const root = rootRef.current;
+      if (!root) {
+        timer = setTimeout(measure, 60);
+        return;
+      }
+      root.measureInWindow((ox, oy) =>
+        v.measureInWindow((x, y, w, h) => {
+          if (w > 0 && h > 0) place({ x: x - ox, y: y - oy, w, h });
+          else if (tries++ < 6) timer = setTimeout(measure, 120);
+          else next();
+        }),
+      );
     };
     measure();
     AccessibilityInfo.announceForAccessibility?.(`${step.title}. ${step.body}`);
     return () => clearTimeout(timer);
-  }, [i, step, win.width, win.height, reduce, next, hx, hy, hw, hh, hr]);
+  }, [i, step, box.w, box.h, reduce, next, hx, hy, hw, hh, hr]);
 
   useEffect(() => {
     pulse.set(reduce ? 0 : withRepeat(withSequence(withTiming(1, { duration: 900 }), withTiming(0, { duration: 900 })), -1));
@@ -159,22 +177,27 @@ export function SpotlightTour({ onDone }: { onDone: () => void }) {
     transform: [{ scale: 1 + pulse.get() * 0.02 }],
   }));
 
-  const CARD_W = Math.min(win.width - S.lg * 2, 360);
+  const CARD_W = Math.min(box.w - S.lg * 2, 360);
   // card goes on the side with more room, then is clamped on screen; a clamped card that would cover
   // the target (a tall list) drops its caret and sits at the screen edge instead
   const GAP = PAD + 16;
   const margin = S.lg + insets.top;
-  const spaceBelow = rect ? win.height - (rect.y + rect.h) : 0;
+  const spaceBelow = rect ? box.h - (rect.y + rect.h) : 0;
   const below = rect ? spaceBelow >= rect.y : false;
-  const cardLeft = rect ? Math.max(S.lg, Math.min(rect.x + rect.w / 2 - CARD_W / 2, win.width - CARD_W - S.lg)) : (win.width - CARD_W) / 2;
+  const cardLeft = rect ? Math.max(S.lg, Math.min(rect.x + rect.w / 2 - CARD_W / 2, box.w - CARD_W - S.lg)) : (box.w - CARD_W) / 2;
   const caretLeft = rect ? Math.max(20, Math.min(rect.x + rect.w / 2 - cardLeft - 8, CARD_W - 36)) : 0;
-  const ideal = !rect ? win.height / 2 - cardH / 2 : below ? rect.y + rect.h + GAP : rect.y - GAP - cardH;
-  const top = Math.max(margin, Math.min(ideal, win.height - cardH - S.lg - insets.bottom));
+  const ideal = !rect ? box.h / 2 - cardH / 2 : below ? rect.y + rect.h + GAP : rect.y - GAP - cardH;
+  const top = Math.max(margin, Math.min(ideal, box.h - cardH - S.lg - insets.bottom));
   const showCaret = !!rect && Math.abs(top - ideal) < 1;
   const cardPos = { top };
 
   return (
-    <View style={StyleSheet.absoluteFill} accessibilityViewIsModal>
+    <View
+      ref={rootRef}
+      collapsable={false}
+      style={StyleSheet.absoluteFill}
+      onLayout={(e) => setBox({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}
+      accessibilityViewIsModal>
       <Animated.View pointerEvents="none" style={[st.scrim, { borderColor: C.scrim }, scrim]} />
       <Animated.View pointerEvents="none" style={[st.ring, ring]} />
       {/* swallow taps on the dimmed screen */}

@@ -3,12 +3,12 @@ import { Text } from 'react-native';
 import { TabScreen } from '@/components/screen';
 import { SyncStatus } from '@/components/sync-status';
 import { Button, DataRow, I, Section } from '@/components/ui';
-import { SALE_WEIGHT_KG } from '@/lib/estimate';
 import { kg, shortDate, time } from '@/lib/format';
-import { daysToSale, latest, syncNow, unsyncedCount, useHerd } from '@/lib/herd';
+import { daysToSale, latest, syncNow, unsyncedCount, useHerd, useSaleWeight } from '@/lib/herd';
 import { S, useTheme } from '@/theme';
 
 export default function Coop() {
+  const saleKg = useSaleWeight();
   const { T } = useTheme();
   const herd = useHerd();
   const { goats } = herd;
@@ -25,7 +25,7 @@ export default function Coop() {
       <Section title="Herd overview" aside={goats.some((g) => g.demo) ? 'Demo data' : undefined}>
         <DataRow label="Goats" value={String(goats.length)} />
         <DataRow label="Members with goats" value={String(members.length)} />
-        <DataRow label={`At sale weight (${SALE_WEIGHT_KG} kg)`} value={String(goats.filter((g) => daysToSale(g) === 0).length)} />
+        <DataRow label={`At sale weight (${saleKg} kg)`} value={String(goats.filter((g) => daysToSale(g) === 0).length)} />
         <DataRow label="Within 30 days of sale" value={String(soon)} />
         <DataRow label="Herd Estimated Weight" value={kg(totalKg)} unit="kg" />
       </Section>

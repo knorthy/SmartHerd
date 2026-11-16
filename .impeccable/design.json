@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-13T16:11:09Z",
+  "title": "Design System: SmartHerd",
+  "extensions": {
+    "colorMeta": {
+      "green": { "role": "primary", "displayName": "Bulletin Green", "canonical": "#0F5C45" },
+      "ochre": { "role": "secondary", "displayName": "Sale Ochre", "canonical": "#8A5710" },
+      "paper": { "role": "neutral", "displayName": "Paper", "canonical": "#F2F5F3" }
+    },
+    "shadows": {
+      "panel": "0 1px 2px rgba(10,30,20,.04), 0 4px 16px rgba(10,30,20,.04)",
+      "float": "0 10px 30px rgba(0,0,0,.14), 0 1px 3px rgba(0,0,0,.08)",
+      "toast": "0 10px 30px rgba(0,0,0,.25)",
+      "tourCard": "0 18px 40px rgba(0,0,0,.28)"
+    },
+    "motion": {
+      "tabPill": "spring damping 20 stiffness 220",
+      "tapeFill": "900ms exponential ease-out",
+      "tourHole": "380ms exponential ease-out",
+      "loadingFirstLaunch": "~1.8s mark settle + dimension line draw",
+      "loadingLater": "0.45s fade",
+      "reducedMotion": "all motion collapses to instant or fade"
+    },
+    "narrative": {
+      "northStar": "A field bulletin on a phone: formal, minimalist, measured.",
+      "rules": ["No divider lines", "Ochre means ready to sell, nothing else", "One filled primary per screen, in thumb reach"]
+    }
+  }
+}
