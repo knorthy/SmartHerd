@@ -59,7 +59,7 @@ export function Button({ label, onPress, variant = 'filled', disabled, style, ic
         b.base,
         filled && { backgroundColor: pressed ? C.greenPressed : C.green },
         tonal && { backgroundColor: pressed ? C.surface2 : C.greenTint },
-        (variant === 'text' || variant === 'danger') && { backgroundColor: pressed ? C.greenTint : 'transparent', paddingHorizontal: S.md },
+        (variant === 'text' || variant === 'danger') && { backgroundColor: pressed ? C.greenTint : 'transparent', paddingHorizontal: S.md, paddingVertical: S.sm, minHeight: 44 },
         pressed && { transform: [{ scale: 0.98 }] },
         disabled && { opacity: 0.4 },
         style,
@@ -73,7 +73,8 @@ export function Button({ label, onPress, variant = 'filled', disabled, style, ic
 const b = StyleSheet.create({
   base: {
     minHeight: 52,
-    borderRadius: 26,
+    borderRadius: 999, // pill follows height when text scales
+    paddingVertical: S.md,
     paddingHorizontal: S.xl,
     flexDirection: 'row',
     alignItems: 'center',
@@ -117,8 +118,8 @@ const useUi = makeStyles((C) =>
       color: C.ink,
       backgroundColor: C.surface2,
     },
-    segWrap: { flexDirection: 'row', backgroundColor: C.surface2, borderRadius: 26, padding: 4, gap: 4 },
-    segItem: { flex: 1, minHeight: 44, borderRadius: 22, flexDirection: 'row', gap: S.xs, alignItems: 'center', justifyContent: 'center' },
+    segWrap: { flexDirection: 'row', backgroundColor: C.surface2, borderRadius: 999, padding: 4, gap: 4 },
+    segItem: { flex: 1, minHeight: 44, paddingVertical: S.sm, paddingHorizontal: S.sm, borderRadius: 999, flexDirection: 'row', gap: S.xs, alignItems: 'center', justifyContent: 'center' },
     segOn: { backgroundColor: C.surface, boxShadow: '0 1px 3px rgba(0, 0, 0, 0.12)' },
   }),
 );

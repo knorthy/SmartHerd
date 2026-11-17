@@ -160,9 +160,9 @@ const useSt = makeStyles((C) =>
     initials: { fontSize: 22, fontWeight: '700', color: C.green, letterSpacing: 0.5 },
     section: { marginTop: S.xxl },
     stepRow: { flexDirection: 'row', alignItems: 'center', gap: S.md, paddingVertical: S.md },
-    stepper: { flexDirection: 'row', alignItems: 'center', backgroundColor: C.surface2, borderRadius: 26, padding: 2 },
-    stepBtn: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
-    stepValue: { minWidth: 64, textAlign: 'center', fontWeight: '700', fontSize: 17 },
-    actions: { flexDirection: 'row', marginTop: S.md, marginLeft: -S.md },
+    stepper: { flexDirection: 'row', alignItems: 'center', backgroundColor: C.surface2, borderRadius: 999, padding: 2 },
+    stepBtn: { width: 44, height: 44, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
+    stepValue: { minWidth: 56, textAlign: 'center', fontWeight: '700', fontSize: 17 },
+    actions: { flexDirection: 'row', marginLeft: -S.md },
   }),
 );

@@ -85,7 +85,6 @@ export function GlassTabBar({ state, descriptors, emitter, navigateToTab }: Bott
           tint={scheme === 'dark' ? 'dark' : 'light'}
           style={st.glass}
           {...(Platform.OS === 'android' ? { blurMethod: 'none' as const } : null)}>
-          <View style={st.sheen} pointerEvents="none" />
           <View style={st.row} onLayout={(e) => setSlotW((e.nativeEvent.layout.width - S.xs * 2) / SLOTS)}>
             {slotW > 0 && <Animated.View style={[st.pill, { width: slotW }, pill]} pointerEvents="none" />}
             {items}
@@ -113,8 +112,6 @@ const useSt = makeStyles((C) =>
       borderColor: C.glassEdge,
       backgroundColor: Platform.OS === 'android' ? C.glassSolid : C.glass,
     },
-    // the glass edge: a brighter top line, like light catching a pane
-    sheen: { position: 'absolute', left: 28, right: 28, top: 0, height: 1, backgroundColor: 'rgba(255, 255, 255, 0.5)' },
     row: { flex: 1, flexDirection: 'row', paddingHorizontal: S.xs },
     slot: { flex: 1 },
     item: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 2 },
