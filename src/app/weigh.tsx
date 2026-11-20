@@ -12,6 +12,15 @@ import { useHerd } from '@/lib/herd';
 import { makeStyles, R, S, useTheme } from '@/theme';
 
 const DEFAULT_DISTANCE = '150';
+const DEFAULT_TOP_DISTANCE = '100';
+
+const distanceError = (v: string) => (v && !(Number(v) >= 50 && Number(v) <= 400) ? 'Enter a distance between 50 and 400 cm.' : undefined);
+
+/** 35 mm-equivalent focal length from the picker's EXIF (Android FocalLengthIn35mmFilm, iOS FocalLenIn35mmFilm); web gives none. */
+function focal35(a: ImagePicker.ImagePickerAsset) {
+  const v = Number(a.exif?.FocalLengthIn35mmFilm ?? a.exif?.FocalLenIn35mmFilm);
+  return v > 0 ? String(v) : '';
+}
 
 export default function NewWeighing() {
   const { C, T } = useTheme();
@@ -26,11 +35,14 @@ export default function NewWeighing() {
   const stage = stagePick ?? goat?.stage ?? null;
   const [side, setSide] = useState<string>();
   const [top, setTop] = useState<string>();
+  const [sideF35, setSideF35] = useState('');
+  const [topF35, setTopF35] = useState('');
   const [distance, setDistance] = useState(DEFAULT_DISTANCE);
+  const [topDistance, setTopDistance] = useState(DEFAULT_TOP_DISTANCE);
 
-  const dist = Number(distance);
-  const distError = distance && !(dist >= 50 && dist <= 400) ? 'Enter a distance between 50 and 400 cm.' : undefined;
-  const ready = goat && stage && side && top && distance && !distError;
+  const distError = distanceError(distance);
+  const topDistError = distanceError(topDistance);
+  const ready = goat && stage && side && top && distance && topDistance && !distError && !topDistError;
 
   const chooseGoat = (id: string) => {
     setPicked(id);
@@ -39,7 +51,7 @@ export default function NewWeighing() {
 
   const estimate = () => {
     if (!ready) return;
-    router.push({ pathname: '/result', params: { goatId: goat.id, stage, side, top, distance: String(dist) } });
+    router.push({ pathname: '/result', params: { goatId: goat.id, stage, side, top, distance: String(Number(distance)), topDistance: String(Number(topDistance)), sideF35, topF35 } });
   };
 
   return (
@@ -78,21 +90,32 @@ export default function NewWeighing() {
 
         <Step n="3" title="Photos">
           <View style={{ gap: S.lg }}>
-            <PhotoSlot label="Side view" hint="Stand level with the goat's flank, whole body in frame." uri={side} onPick={setSide} />
-            <PhotoSlot label="Top view" hint="Hold the phone above the back, head to tail in frame." uri={top} onPick={setTop} />
+            <PhotoSlot label="Side view" hint="Stand level with the goat's flank, whole body in frame." uri={side} onPick={(u, f) => { setSide(u); setSideF35(f); }} />
+            <PhotoSlot label="Top view" hint="Hold the phone above the back, head to tail in frame." uri={top} onPick={(u, f) => { setTop(u); setTopF35(f); }} />
           </View>
         </Step>
 
         <Step n="4" title="Camera distance">
-          <Field
-            label="Distance to goat (cm)"
-            hint="On the device this comes from the distance sensor. Here it is entered."
-            keyboardType="number-pad"
-            value={distance}
-            onChangeText={(t) => setDistance(t.replace(/[^0-9]/g, ''))}
-            error={distError}
-            maxLength={3}
-          />
+          <View style={{ gap: S.lg }}>
+            <Field
+              label="Side-view distance (cm)"
+              hint="On the device this comes from the distance sensor. Here it is entered."
+              keyboardType="number-pad"
+              value={distance}
+              onChangeText={(t) => setDistance(t.replace(/[^0-9]/g, ''))}
+              error={distError}
+              maxLength={3}
+            />
+            <Field
+              label="Top-view distance (cm)"
+              hint="From the phone to the goat's back."
+              keyboardType="number-pad"
+              value={topDistance}
+              onChangeText={(t) => setTopDistance(t.replace(/[^0-9]/g, ''))}
+              error={topDistError}
+              maxLength={3}
+            />
+          </View>
         </Step>
       </ScrollView>
       <View style={st.footer}>
@@ -119,7 +142,7 @@ function Step({ n, title, children }: { n: string; title: string; children: Reac
   );
 }
 
-function PhotoSlot({ label, hint, uri, onPick }: { label: string; hint: string; uri?: string; onPick: (uri: string) => void }) {
+function PhotoSlot({ label, hint, uri, onPick }: { label: string; hint: string; uri?: string; onPick: (uri: string, f35: string) => void }) {
   const { C, T } = useTheme();
   const st = useSt();
   const [camPerm, requestCam] = ImagePicker.useCameraPermissions();
@@ -132,12 +155,12 @@ function PhotoSlot({ label, hint, uri, onPick }: { label: string; hint: string; 
         return;
       }
     }
-    const r = await ImagePicker.launchCameraAsync({ mediaTypes: ['images'], quality: 0.7 });
-    if (!r.canceled) onPick(r.assets[0].uri);
+    const r = await ImagePicker.launchCameraAsync({ mediaTypes: ['images'], quality: 0.7, exif: true });
+    if (!r.canceled) onPick(r.assets[0].uri, focal35(r.assets[0]));
   };
   const choose = async () => {
-    const r = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.7 });
-    if (!r.canceled) onPick(r.assets[0].uri);
+    const r = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.7, exif: true });
+    if (!r.canceled) onPick(r.assets[0].uri, focal35(r.assets[0]));
   };
 
   return (

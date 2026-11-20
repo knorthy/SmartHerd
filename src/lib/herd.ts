@@ -12,10 +12,14 @@ export type Weighing = Measurements & {
   at: number; // epoch ms
   weight: number; // kg
   stage: GrowthStage;
-  distanceCm: number;
+  distanceCm: number; // side view
+  topDistanceCm?: number;
   sideUri?: string;
   topUri?: string;
   synced: boolean;
+  /** 'server' = estimated by the SmartHerd pose model; absent = simulated or demo. */
+  source?: 'server';
+  stageRangeOk?: boolean;
 };
 
 export type Goat = {
@@ -108,17 +112,18 @@ export function addGoat(goat: Omit<Goat, 'id' | 'weighings'>) {
 }
 
 /** Saves a weighing; photos are copied into app storage first so the record keeps them. Returns its id. */
-export async function addWeighing(goatId: string, w: Omit<Weighing, 'id' | 'synced' | 'at'>) {
-  const id = newId();
-  const [sideUri, topUri] = await Promise.all([
-    w.sideUri ? keepPhoto(w.sideUri, `${id}-side`) : undefined,
-    w.topUri ? keepPhoto(w.topUri, `${id}-top`) : undefined,
-  ]);
+export async function addWeighing(goatId: string, { id = newId(), at = Date.now(), ...w }: Omit<Weighing, 'id' | 'synced' | 'at'> & { id?: string; at?: number }) {
+  // queued captures already live in app storage
+  const keep = (uri: string | undefined, name: string) => (!uri || uri.includes('/photos/') ? uri : keepPhoto(uri, name));
+  const [sideUri, topUri] = await Promise.all([keep(w.sideUri, `${id}-side`), keep(w.topUri, `${id}-top`)]);
   set({
     ...state,
-    goats: state.goats.map((g) =>
-      g.id === goatId ? { ...g, stage: w.stage, weighings: [...g.weighings, { ...w, sideUri, topUri, id, at: Date.now(), synced: false }] } : g,
-    ),
+    goats: state.goats.map((g) => {
+      if (g.id !== goatId) return g;
+      // a queued capture can be estimated after a newer weighing, so keep newest last
+      const weighings = [...g.weighings, { ...w, sideUri, topUri, id, at, synced: false }].sort((a, b) => a.at - b.at);
+      return { ...g, stage: weighings[weighings.length - 1].stage, weighings };
+    }),
   });
   return id;
 }

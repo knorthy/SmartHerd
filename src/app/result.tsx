@@ -1,20 +1,31 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Alert, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useReducedMotion } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Figure } from '@/components/figure';
 import { Tape } from '@/components/tape';
 import { Button, DataRow, Panel, Section } from '@/components/ui';
+import { apiBase, requestEstimate, type EstimateOutcome } from '@/lib/api';
 import { simulateEstimate, STAGES, type GrowthStage } from '@/lib/estimate';
 import { cm, kg, shortDate, stageLabel, time } from '@/lib/format';
-import { addWeighing, latest, removeWeighing, restoreWeighing, useHerd, useSaleWeight } from '@/lib/herd';
+import { addWeighing, latest, newId, removeWeighing, restoreWeighing, useHerd, useSaleWeight } from '@/lib/herd';
 import { deletePhotos } from '@/lib/photos';
 import { showToast } from '@/lib/toast';
 import { makeStyles, R, S, useTheme } from '@/theme';
 
-type Params = { goatId: string; stage?: string; side?: string; top?: string; distance?: string; weighingId?: string };
+type Params = {
+  goatId: string;
+  stage?: string;
+  side?: string;
+  top?: string;
+  distance?: string;
+  topDistance?: string;
+  sideF35?: string;
+  topF35?: string;
+  weighingId?: string;
+};
 
 /** A fresh estimate to save, or (with `weighingId`) a saved weighing reopened from the goat record. */
 export default function Result() {
@@ -22,15 +33,38 @@ export default function Result() {
   const { C, T } = useTheme();
   const st = useSt();
   const p = useLocalSearchParams<Params>();
-  const [fresh] = useState(() =>
-    simulateEstimate(STAGES.includes(p.stage as GrowthStage) ? (p.stage as GrowthStage) : 'adult'),
+  const viewing = !!p.weighingId;
+  const freshStage: GrowthStage = STAGES.includes(p.stage as GrowthStage) ? (p.stage as GrowthStage) : 'adult';
+  const sideDist = Number(p.distance) || 0;
+  const topDist = Number(p.topDistance) || 0;
+  const [id] = useState(newId);
+  const [outcome, setOutcome] = useState<EstimateOutcome | null>(() =>
+    viewing || apiBase() ? null : { kind: 'ok', est: simulateEstimate(freshStage), stageRangeOk: true },
   );
+  const [attempt, setAttempt] = useState(0);
   const [saving, setSaving] = useState(false);
   const { goats } = useHerd();
   const goat = goats.find((g) => g.id === p.goatId);
   const savedIndex = p.weighingId && goat ? goat.weighings.findIndex((w) => w.id === p.weighingId) : -1;
   const saved = savedIndex >= 0 ? goat!.weighings[savedIndex] : undefined;
-  const viewing = !!p.weighingId;
+
+  useEffect(() => {
+    if (viewing || !apiBase() || !p.side || !p.top) return;
+    let live = true;
+    void requestEstimate({
+      id,
+      stage: freshStage,
+      sideUri: p.side,
+      topUri: p.top,
+      sideDistCm: sideDist,
+      topDistCm: topDist,
+      sideF35Mm: Number(p.sideF35) || undefined,
+      topF35Mm: Number(p.topF35) || undefined,
+    }).then((o) => live && setOutcome(o));
+    return () => {
+      live = false;
+    };
+  }, [attempt, viewing, id, freshStage, p.side, p.top, sideDist, topDist, p.sideF35, p.topF35]);
 
   if (!goat || (viewing && !saved)) {
     return (
@@ -41,16 +75,27 @@ export default function Result() {
     );
   }
 
-  const est = saved ?? fresh;
-  const stage: GrowthStage = saved?.stage ?? (STAGES.includes(p.stage as GrowthStage) ? (p.stage as GrowthStage) : 'adult');
+  const stage: GrowthStage = saved?.stage ?? freshStage;
   const side = saved ? saved.sideUri : p.side;
   const top = saved ? saved.topUri : p.top;
-  const distance = saved ? saved.distanceCm : Number(p.distance) || 0;
+  const distance = saved ? saved.distanceCm : sideDist;
+  const topDistance = saved ? saved.topDistanceCm : topDist;
   const prev = saved ? goat.weighings[savedIndex - 1] : latest(goat);
 
   const save = async () => {
+    if (outcome?.kind !== 'ok') return;
     setSaving(true);
-    await addWeighing(goat.id, { ...fresh, stage, distanceCm: distance, sideUri: p.side, topUri: p.top });
+    await addWeighing(goat.id, {
+      ...outcome.est,
+      id,
+      stage,
+      distanceCm: distance,
+      topDistanceCm: topDistance,
+      sideUri: p.side,
+      topUri: p.top,
+      source: apiBase() ? 'server' : undefined,
+      stageRangeOk: outcome.stageRangeOk,
+    });
     leave();
     router.push({ pathname: '/goat/[id]', params: { id: goat.id } });
     showToast({ message: `Saved to ${goat.name}’s record` });
@@ -79,6 +124,54 @@ export default function Result() {
     });
   };
 
+  if (!saved && outcome?.kind !== 'ok') {
+    const retry = () => {
+      setOutcome(null);
+      setAttempt((n) => n + 1);
+    };
+    const reason = outcome?.kind === 'retake' ? outcome.reason.replace(/\.$/, '') : '';
+    const [heading, body] =
+      outcome?.kind === 'retake'
+        ? ['Retake needed', `${reason.charAt(0).toUpperCase()}${reason.slice(1)}. Make sure the whole goat is in frame and the photo is sharp.`]
+        : outcome?.kind === 'offline'
+          ? ['Saved photos, no estimate yet', `${outcome.message} Save the photos now and the weight is estimated at the next sync.`]
+          : outcome?.kind === 'rejected'
+            ? ['These photos can’t be used', outcome.message]
+            : ['Estimating…', 'The first estimate after the server starts can take a minute.'];
+    return (
+      <SafeAreaView edges={['bottom']} style={{ flex: 1, backgroundColor: C.paper }}>
+        <ScrollView contentContainerStyle={st.body}>
+          <Text style={T.meta}>
+            {goat.name} · {goat.tag} · {stageLabel(stage)}
+          </Text>
+          <View style={{ marginTop: S.xl, gap: S.sm }}>
+            {!outcome && <ActivityIndicator color={C.green} style={{ alignSelf: 'flex-start' }} />}
+            <Text style={T.heading}>{heading}</Text>
+            <Text style={outcome ? T.body : T.meta}>{body}</Text>
+          </View>
+        </ScrollView>
+        <View style={st.footer}>
+          {!outcome ? (
+            <Button label="Home" variant="tonal" onPress={home} style={{ flex: 1 }} />
+          ) : outcome.kind === 'retake' ? (
+            <Button label="Retake photos" onPress={() => router.back()} style={{ flex: 1 }} />
+          ) : outcome.kind === 'offline' ? (
+            <>
+              <Button label="Try again" variant="tonal" onPress={retry} style={{ flex: 1 }} />
+              <Button label="Save for later" onPress={() => {}} style={{ flex: 2 }} disabled />
+            </>
+          ) : (
+            <Button label="Back" onPress={() => router.back()} style={{ flex: 1 }} />
+          )}
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  const est = saved ?? (outcome as Extract<EstimateOutcome, { kind: 'ok' }>).est;
+  const rangeOk = saved ? saved.stageRangeOk : outcome?.kind === 'ok' && outcome.stageRangeOk;
+  const server = saved ? saved.source === 'server' : !!apiBase();
+  const distances = topDistance ? `Side distance ${distance} cm, top distance ${topDistance} cm.` : `Camera distance ${distance} cm.`;
   const diff = prev ? est.weight - prev.weight : null;
   const toSale = saleKg - est.weight;
 
@@ -109,6 +202,11 @@ export default function Result() {
           )}
           {diff !== null && prev ? ` · ${diff >= 0 ? '+' : '−'}${kg(Math.abs(diff))} kg since ${shortDate(prev.at)}` : ''}
         </Text>
+        {rangeOk === false && (
+          <Text style={[T.meta, { color: C.error, marginTop: S.xs }]}>
+            Outside the expected range for {stageLabel(stage)} goats. Check the growth stage and both distances.
+          </Text>
+        )}
         </Panel>
 
         <View style={st.figures}>
@@ -128,7 +226,8 @@ export default function Result() {
           <DataRow label="Heart Girth" value={cm(est.heartGirth)} />
         </Section>
         <Text style={[T.caption, { marginTop: S.md }]}>
-          Simulated estimate. Heart girth from chest height and width (Ramanujan’s ellipse approximation); weight by Schaeffer’s formula, girth² × length ÷ 10,840. Camera distance {distance} cm.
+          {server ? 'Estimated by the SmartHerd pose model; not yet validated against scale weights.' : 'Simulated estimate.'} Heart girth from
+          chest height and width (Ramanujan’s ellipse approximation); weight by Schaeffer’s formula, girth² × length ÷ 10,840. {distances}
         </Text>
       </ScrollView>
       <View style={st.footer}>
