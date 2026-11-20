@@ -21,9 +21,9 @@ University final project (COSC 111A – Internet of Things, Cavite State Univers
 Weighing flow: choose or register a goat → set growth stage (young / grower / adult) → provide side and top images → camera-to-goat distance (simulated or entered) → result → save to the goat's record.
 
 ## Capabilities and Constraints
-- Estimates are **simulated** in the app: plausible measurements per growth stage, weight computed with Schaeffer's formula `Weight (kg) = HeartGirth² × BodyLength / 10840` (cm). No model server.
-- Data lives on the device; core weighing works fully offline.
-- SmartHerd Sync is represented by a simple cooperative overview built from local data plus a sync-status display. No real cloud backend, no SMS.
+- With a server address set (Profile), estimates come from the backend pose pipeline; without one they are **simulated** in the app (plausible measurements per growth stage). Either way weight is Schaeffer's formula `Weight (kg) = HeartGirth² × BodyLength / 10840` (cm), and estimates are not validated against a scale.
+- Data lives on the device; core weighing works fully offline. Captures made without a connection are queued and estimated at the next sync.
+- SmartHerd Sync pushes and pulls records through the backend (deletions travel as tombstones), shown in a cooperative overview and a sync-status display. No SMS.
 - Ships on Android and iOS with **one shared custom look** (not per-OS styling). Expo SDK 58, Expo Router.
 - Units: measurements always in centimetres, weight in kilograms.
 
