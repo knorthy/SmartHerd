@@ -40,6 +40,9 @@ type State = {
   saleWeight?: number;
   /** Set after the first full loading animation has played. */
   launched?: boolean;
+  /** SmartHerd server address and shared access code; set in Profile. */
+  serverUrl?: string;
+  token?: string;
 };
 
 const KEY = 'smartherd:v1';
@@ -170,7 +173,7 @@ export function unsyncedCount(s: State) {
 
 export function resetHerd() {
   deletePhotos(state.goats.flatMap((g) => g.weighings.flatMap((w) => [w.sideUri, w.topUri])));
-  set({ ...empty, onboarded: state.onboarded, theme: state.theme, profile: state.profile, saleWeight: state.saleWeight, launched: state.launched });
+  set({ ...empty, onboarded: state.onboarded, theme: state.theme, profile: state.profile, saleWeight: state.saleWeight, launched: state.launched, serverUrl: state.serverUrl, token: state.token });
 }
 
 const DAY = 86_400_000;
@@ -208,6 +211,15 @@ export function setTheme(theme: 'system' | 'light' | 'dark') {
 
 export function setProfile(profile: Profile) {
   set({ ...state, profile });
+}
+
+/** An empty saved address means "simulated"; only an unset one falls back to the build's EXPO_PUBLIC_API_URL. */
+export function getSettings() {
+  return { serverUrl: (state.serverUrl ?? process.env.EXPO_PUBLIC_API_URL ?? '').trim(), token: (state.token ?? '').trim() };
+}
+
+export function setServer(serverUrl: string, token: string) {
+  set({ ...state, serverUrl, token });
 }
 
 export function useSaleWeight() {
