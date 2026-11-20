@@ -10,8 +10,9 @@ import { Button, DataRow, Panel, Section } from '@/components/ui';
 import { apiBase, requestEstimate, type EstimateOutcome } from '@/lib/api';
 import { simulateEstimate, STAGES, type GrowthStage } from '@/lib/estimate';
 import { cm, kg, shortDate, stageLabel, time } from '@/lib/format';
-import { addWeighing, latest, newId, removeWeighing, restoreWeighing, useHerd, useSaleWeight } from '@/lib/herd';
+import { addWeighing, latest, newId, queueCapture, removeWeighing, restoreWeighing, useHerd, useSaleWeight } from '@/lib/herd';
 import { deletePhotos } from '@/lib/photos';
+import { syncNow } from '@/lib/sync';
 import { showToast } from '@/lib/toast';
 import { makeStyles, R, S, useTheme } from '@/theme';
 
@@ -99,6 +100,26 @@ export default function Result() {
     leave();
     router.push({ pathname: '/goat/[id]', params: { id: goat.id } });
     showToast({ message: `Saved to ${goat.name}’s record` });
+    void syncNow();
+  };
+
+  const saveForLater = async () => {
+    if (!p.side || !p.top) return;
+    setSaving(true);
+    await queueCapture({
+      id,
+      goatId: goat.id,
+      stage,
+      sideUri: p.side,
+      topUri: p.top,
+      distanceCm: distance,
+      topDistanceCm: topDistance ?? distance,
+      sideF35Mm: Number(p.sideF35) || undefined,
+      topF35Mm: Number(p.topF35) || undefined,
+    });
+    leave();
+    router.push({ pathname: '/goat/[id]', params: { id: goat.id } });
+    showToast({ message: `Photos saved. ${goat.name}’s weight is estimated at the next sync.` });
   };
 
   const home = () => {
@@ -157,8 +178,8 @@ export default function Result() {
             <Button label="Retake photos" onPress={() => router.back()} style={{ flex: 1 }} />
           ) : outcome.kind === 'offline' ? (
             <>
-              <Button label="Try again" variant="tonal" onPress={retry} style={{ flex: 1 }} />
-              <Button label="Save for later" onPress={() => {}} style={{ flex: 2 }} disabled />
+              <Button label="Try again" variant="tonal" onPress={retry} style={{ flex: 1 }} disabled={saving} />
+              <Button label={saving ? 'Saving…' : 'Save for later'} onPress={saveForLater} style={{ flex: 2 }} disabled={saving} />
             </>
           ) : (
             <Button label="Back" onPress={() => router.back()} style={{ flex: 1 }} />

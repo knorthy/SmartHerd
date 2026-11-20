@@ -1,13 +1,16 @@
 import { Stack, usePathname } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { AppState } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { LoadingScreen } from '@/components/loading-screen';
 import { SpotlightTour } from '@/components/spotlight-tour';
 import { ToastHost } from '@/components/toast-host';
+import { apiBase } from '@/lib/api';
 import { markLaunched, setOnboarded, useHerd } from '@/lib/herd';
+import { syncNow } from '@/lib/sync';
 import { useTheme } from '@/theme';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -23,6 +26,16 @@ export default function RootLayout() {
     markLaunched();
   }, []);
   const toured = useCallback(() => setOnboarded(true), []);
+
+  // the spec's "retried automatically": sync on launch and whenever the app comes back to the foreground
+  useEffect(() => {
+    const sync = () => {
+      if (apiBase()) void syncNow();
+    };
+    sync();
+    const sub = AppState.addEventListener('change', (s) => s === 'active' && sync());
+    return () => sub.remove();
+  }, []);
 
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: C.paper }}>

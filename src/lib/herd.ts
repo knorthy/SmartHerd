@@ -34,6 +34,20 @@ export type Goat = {
 
 export type Profile = { name: string; coop: string };
 
+/** Photos taken without a server connection, estimated at the next sync. */
+export type Capture = {
+  id: string;
+  goatId: string;
+  stage: GrowthStage;
+  at: number;
+  sideUri: string;
+  topUri: string;
+  distanceCm: number;
+  topDistanceCm: number;
+  sideF35Mm?: number;
+  topF35Mm?: number;
+};
+
 type State = {
   goats: Goat[];
   lastSync: number | null;
@@ -47,6 +61,9 @@ type State = {
   /** SmartHerd server address and shared access code; set in Profile. */
   serverUrl?: string;
   token?: string;
+  queue?: Capture[];
+  /** Ids of synced server weighings deleted here; pushed as `{ uid, deleted: true }`. */
+  tombstones?: string[];
 };
 
 const KEY = 'smartherd:v1';
@@ -142,9 +159,16 @@ export function removeWeighing(goatId: string, weighingId: string) {
   const index = g?.weighings.findIndex((w) => w.id === weighingId) ?? -1;
   if (!g || index < 0) return null;
   const weighing = g.weighings[index];
-  set({ ...state, goats: state.goats.map((x) => (x.id === goatId ? { ...x, weighings: x.weighings.filter((w) => w.id !== weighingId) } : x)) });
+  set({
+    ...state,
+    goats: state.goats.map((x) => (x.id === goatId ? { ...x, weighings: x.weighings.filter((w) => w.id !== weighingId) } : x)),
+    tombstones: tombstonesFor([weighing]),
+  });
   return { goatId, weighing, index };
 }
+
+/** Synced server weighings must be deleted on the server too, or the next pull brings them back. */
+const tombstonesFor = (ws: Weighing[]) => [...(state.tombstones ?? []), ...ws.filter((w) => w.synced && w.source === 'server').map((w) => w.id)];
 
 export function restoreWeighing({ goatId, weighing, index }: { goatId: string; weighing: Weighing; index: number }) {
   set({
@@ -152,32 +176,52 @@ export function restoreWeighing({ goatId, weighing, index }: { goatId: string; w
     goats: state.goats.map((g) => {
       if (g.id !== goatId) return g;
       const ws = [...g.weighings];
-      ws.splice(Math.min(index, ws.length), 0, weighing);
+      // unsynced so the re-push overwrites a tombstone that was already sent
+      ws.splice(Math.min(index, ws.length), 0, { ...weighing, synced: false });
       return { ...g, weighings: ws };
     }),
+    tombstones: state.tombstones?.filter((t) => t !== weighing.id),
   });
 }
 
 export function deleteGoat(goatId: string) {
-  deletePhotos(state.goats.find((g) => g.id === goatId)?.weighings.flatMap((w) => [w.sideUri, w.topUri]) ?? []);
-  set({ ...state, goats: state.goats.filter((g) => g.id !== goatId) });
-}
-
-// shortcut: SmartHerd Sync has no backend yet; "sync" just marks local records as uploaded.
-export function syncNow() {
+  const ws = state.goats.find((g) => g.id === goatId)?.weighings ?? [];
+  const queued = state.queue?.filter((c) => c.goatId === goatId) ?? [];
+  deletePhotos([...ws, ...queued].flatMap((w) => [w.sideUri, w.topUri]));
   set({
     ...state,
-    lastSync: Date.now(),
-    goats: state.goats.map((g) => ({ ...g, weighings: g.weighings.map((w) => ({ ...w, synced: true })) })),
+    goats: state.goats.filter((g) => g.id !== goatId),
+    queue: state.queue?.filter((c) => c.goatId !== goatId),
+    tombstones: tombstonesFor(ws),
   });
 }
 
-export function unsyncedCount(s: State) {
-  return s.goats.reduce((n, g) => n + g.weighings.filter((w) => !w.synced).length, 0);
+/** Keeps both photos in app storage and queues the capture; `at` is now. */
+export async function queueCapture(c: Omit<Capture, 'at'>) {
+  const [sideUri, topUri] = await Promise.all([keepPhoto(c.sideUri, `${c.id}-side`), keepPhoto(c.topUri, `${c.id}-top`)]);
+  set({ ...state, queue: [...(state.queue ?? []), { ...c, sideUri, topUri, at: Date.now() }] });
 }
 
+export function dropCapture(id: string, deleteFiles: boolean) {
+  const c = state.queue?.find((x) => x.id === id);
+  if (c && deleteFiles) deletePhotos([c.sideUri, c.topUri]);
+  set({ ...state, queue: state.queue?.filter((x) => x.id !== id) });
+}
+
+/** For sync.ts, which must read the latest state after each await. */
+export const getState = () => state;
+
+export function applySync(patch: { goats?: Goat[]; tombstones?: string[]; lastSync?: number }) {
+  set({ ...state, ...patch });
+}
+
+export function unsyncedCount(s: State) {
+  return s.goats.reduce((n, g) => n + g.weighings.filter((w) => !w.synced).length, 0) + (s.queue?.length ?? 0);
+}
+
+/** Local to this phone: no tombstones, so the next sync pulls the cooperative's records back. */
 export function resetHerd() {
-  deletePhotos(state.goats.flatMap((g) => g.weighings.flatMap((w) => [w.sideUri, w.topUri])));
+  deletePhotos([...state.goats.flatMap((g) => g.weighings), ...(state.queue ?? [])].flatMap((w) => [w.sideUri, w.topUri]));
   set({ ...empty, onboarded: state.onboarded, theme: state.theme, profile: state.profile, saleWeight: state.saleWeight, launched: state.launched, serverUrl: state.serverUrl, token: state.token });
 }
 
