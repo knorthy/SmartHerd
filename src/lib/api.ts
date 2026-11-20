@@ -1,5 +1,5 @@
 import type { GrowthStage, Measurements } from './estimate';
-import { getSettings } from './herd';
+import { getSettings, type Weighing } from './herd';
 import { photoBase64 } from './photos';
 
 export type EstimateInput = {
@@ -7,15 +7,16 @@ export type EstimateInput = {
   stage: GrowthStage;
   sideUri: string;
   topUri: string;
-  sideDistCm: number;
-  topDistCm: number;
+  /** Absent = the server measures it with Depth Pro. */
+  sideDistCm?: number;
+  topDistCm?: number;
   /** 35 mm-equivalent focal length from the photo's EXIF, when the picker gave one. */
   sideF35Mm?: number;
   topF35Mm?: number;
 };
 
 export type EstimateOutcome =
-  | { kind: 'ok'; est: Measurements & { weight: number }; stageRangeOk: boolean }
+  | { kind: 'ok'; est: Measurements & { weight: number }; stageRangeOk: boolean; sideDistCm?: number; topDistCm?: number; distanceSource?: Weighing['distanceSource'] }
   | { kind: 'retake'; reason: string }
   | { kind: 'offline'; message: string } // retry later: network error, timeout, 401, 5xx
   | { kind: 'rejected'; message: string }; // will never succeed: 400, 413, unreadable photo file
@@ -65,6 +66,9 @@ export function outcomeFromResponse(status: number, body: any): EstimateOutcome 
       kind: 'ok',
       est: { bodyLength: body.body_length_cm, chestHeight: body.chest_height_cm, chestWidth: body.chest_width_cm, heartGirth: body.heart_girth_cm, weight: body.weight_kg },
       stageRangeOk: body.stage_range_ok !== false,
+      sideDistCm: body.side_dist_cm,
+      topDistCm: body.top_dist_cm,
+      distanceSource: body.distance_source,
     };
   }
   if (status === 401) return { kind: 'offline', message: 'The server did not accept the access code. Check it in Profile.' };
@@ -85,7 +89,7 @@ export async function requestEstimate(c: EstimateInput): Promise<EstimateOutcome
       serverUrl,
       token,
       '/estimate',
-      // undefined focal lengths drop out of the JSON, so the server falls back to the photo's own EXIF
+      // undefined values drop out of the JSON: no focal length -> the photo's own EXIF, no distance -> Depth Pro
       { uid: c.id, stage: c.stage, side_dist_cm: c.sideDistCm, top_dist_cm: c.topDistCm, side_image: side, top_image: top, side_f35_mm: c.sideF35Mm, top_f35_mm: c.topF35Mm },
       90_000,
     );
@@ -132,6 +136,8 @@ if (__DEV__) {
   console.assert(k(200, { retake: true, reason: 'x' }).kind === 'retake', 'api retake');
   const ok = k(200, { retake: false, weight_kg: 27.1, body_length_cm: 60, chest_height_cm: 30, chest_width_cm: 18, heart_girth_cm: 70, stage_range_ok: true });
   console.assert(ok.kind === 'ok' && ok.est.weight === 27.1 && ok.est.bodyLength === 60, 'api ok');
+  const auto = k(200, { weight_kg: 20, side_dist_cm: 213.4, top_dist_cm: 100, distance_source: { side: 'auto', top: 'entered' } });
+  console.assert(auto.kind === 'ok' && auto.sideDistCm === 213.4 && auto.distanceSource?.side === 'auto', 'api auto distance');
   console.assert(k(401, {}).kind === 'offline', 'api 401');
   const bad = k(400, { error: 'e' });
   console.assert(bad.kind === 'rejected' && bad.message === 'e', 'api 400');

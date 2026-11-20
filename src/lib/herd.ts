@@ -14,6 +14,8 @@ export type Weighing = Measurements & {
   stage: GrowthStage;
   distanceCm: number; // side view
   topDistanceCm?: number;
+  /** Which distances the server measured itself (Depth Pro) instead of using the entered one. */
+  distanceSource?: { side: 'entered' | 'auto'; top: 'entered' | 'auto' };
   sideUri?: string;
   topUri?: string;
   synced: boolean;
@@ -42,8 +44,9 @@ export type Capture = {
   at: number;
   sideUri: string;
   topUri: string;
-  distanceCm: number;
-  topDistanceCm: number;
+  /** Absent = the server measures it. */
+  distanceCm?: number;
+  topDistanceCm?: number;
   sideF35Mm?: number;
   topF35Mm?: number;
 };

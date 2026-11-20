@@ -6,13 +6,16 @@ import { Alert, Platform, Pressable, ScrollView, StyleSheet, Text, View } from '
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button, Field, I, Icon, Segmented } from '@/components/ui';
+import { apiBase } from '@/lib/api';
 import { STAGES, type GrowthStage } from '@/lib/estimate';
 import { stageLabel } from '@/lib/format';
 import { useHerd } from '@/lib/herd';
 import { makeStyles, R, S, useTheme } from '@/theme';
 
+// ponytail: simulated mode (no server, so no Depth Pro) silently uses these typical distances when a field is left empty
 const DEFAULT_DISTANCE = '150';
 const DEFAULT_TOP_DISTANCE = '100';
+const sent = (v: string, fallback: string) => (v ? String(Number(v)) : apiBase() ? '' : fallback);
 
 const distanceError = (v: string) => (v && !(Number(v) >= 50 && Number(v) <= 400) ? 'Enter a distance between 50 and 400 cm.' : undefined);
 
@@ -37,12 +40,12 @@ export default function NewWeighing() {
   const [top, setTop] = useState<string>();
   const [sideF35, setSideF35] = useState('');
   const [topF35, setTopF35] = useState('');
-  const [distance, setDistance] = useState(DEFAULT_DISTANCE);
-  const [topDistance, setTopDistance] = useState(DEFAULT_TOP_DISTANCE);
+  const [distance, setDistance] = useState('');
+  const [topDistance, setTopDistance] = useState('');
 
   const distError = distanceError(distance);
   const topDistError = distanceError(topDistance);
-  const ready = goat && stage && side && top && distance && topDistance && !distError && !topDistError;
+  const ready = goat && stage && side && top && !distError && !topDistError;
 
   const chooseGoat = (id: string) => {
     setPicked(id);
@@ -51,7 +54,7 @@ export default function NewWeighing() {
 
   const estimate = () => {
     if (!ready) return;
-    router.push({ pathname: '/result', params: { goatId: goat.id, stage, side, top, distance: String(Number(distance)), topDistance: String(Number(topDistance)), sideF35, topF35 } });
+    router.push({ pathname: '/result', params: { goatId: goat.id, stage, side, top, distance: sent(distance, DEFAULT_DISTANCE), topDistance: sent(topDistance, DEFAULT_TOP_DISTANCE), sideF35, topF35 } });
   };
 
   return (
@@ -99,7 +102,8 @@ export default function NewWeighing() {
           <View style={{ gap: S.lg }}>
             <Field
               label="Side-view distance (cm)"
-              hint="On the device this comes from the distance sensor. Here it is entered."
+              hint="Leave empty to measure automatically."
+              placeholder="Auto"
               keyboardType="number-pad"
               value={distance}
               onChangeText={(t) => setDistance(t.replace(/[^0-9]/g, ''))}
@@ -108,7 +112,8 @@ export default function NewWeighing() {
             />
             <Field
               label="Top-view distance (cm)"
-              hint="From the phone to the goat's back."
+              hint="From the phone to the goat's back. Leave empty to measure automatically."
+              placeholder="Auto"
               keyboardType="number-pad"
               value={topDistance}
               onChangeText={(t) => setTopDistance(t.replace(/[^0-9]/g, ''))}

@@ -57,8 +57,8 @@ export default function Result() {
       stage: freshStage,
       sideUri: p.side,
       topUri: p.top,
-      sideDistCm: sideDist,
-      topDistCm: topDist,
+      sideDistCm: sideDist || undefined,
+      topDistCm: topDist || undefined,
       sideF35Mm: Number(p.sideF35) || undefined,
       topF35Mm: Number(p.topF35) || undefined,
     }).then((o) => live && setOutcome(o));
@@ -79,8 +79,11 @@ export default function Result() {
   const stage: GrowthStage = saved?.stage ?? freshStage;
   const side = saved ? saved.sideUri : p.side;
   const top = saved ? saved.topUri : p.top;
-  const distance = saved ? saved.distanceCm : sideDist;
-  const topDistance = saved ? saved.topDistanceCm : topDist;
+  // the server echoes the distances it used, including any it measured itself
+  const used = outcome?.kind === 'ok' ? outcome : undefined;
+  const distance = saved ? saved.distanceCm : (used?.sideDistCm ?? sideDist);
+  const topDistance = saved ? saved.topDistanceCm : (used?.topDistCm ?? topDist);
+  const distanceSource = saved ? saved.distanceSource : used?.distanceSource;
   const prev = saved ? goat.weighings[savedIndex - 1] : latest(goat);
 
   const save = async () => {
@@ -92,6 +95,7 @@ export default function Result() {
       stage,
       distanceCm: distance,
       topDistanceCm: topDistance,
+      distanceSource,
       sideUri: p.side,
       topUri: p.top,
       source: apiBase() ? 'server' : undefined,
@@ -112,8 +116,8 @@ export default function Result() {
       stage,
       sideUri: p.side,
       topUri: p.top,
-      distanceCm: distance,
-      topDistanceCm: topDistance ?? distance,
+      distanceCm: distance || undefined,
+      topDistanceCm: topDistance || undefined,
       sideF35Mm: Number(p.sideF35) || undefined,
       topF35Mm: Number(p.topF35) || undefined,
     });
@@ -192,7 +196,8 @@ export default function Result() {
   const est = saved ?? (outcome as Extract<EstimateOutcome, { kind: 'ok' }>).est;
   const rangeOk = saved ? saved.stageRangeOk : outcome?.kind === 'ok' && outcome.stageRangeOk;
   const server = saved ? saved.source === 'server' : !!apiBase();
-  const distances = topDistance ? `Side distance ${distance} cm, top distance ${topDistance} cm.` : `Camera distance ${distance} cm.`;
+  const auto = (v: 'side' | 'top') => (distanceSource?.[v] === 'auto' ? ' (auto)' : '');
+  const distances = topDistance ? `Side distance ${distance} cm${auto('side')}, top distance ${topDistance} cm${auto('top')}.` : `Camera distance ${distance} cm.`;
   const diff = prev ? est.weight - prev.weight : null;
   const toSale = saleKg - est.weight;
 
