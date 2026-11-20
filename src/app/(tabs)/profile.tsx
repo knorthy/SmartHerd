@@ -6,7 +6,10 @@ import { Alert, Platform, Pressable, StyleSheet, Text, View } from 'react-native
 import { LogoMark } from '@/components/logo';
 import { TabScreen } from '@/components/screen';
 import { Button, DataRow, Field, I, Icon, Section, Segmented } from '@/components/ui';
-import { loadDemoHerd, resetHerd, setOnboarded, setProfile, setTheme, useHerd, setSaleWeight, useSaleWeight } from '@/lib/herd';
+import { ping } from '@/lib/api';
+import { getSettings, loadDemoHerd, resetHerd, setOnboarded, setProfile, setServer, setTheme, useHerd, setSaleWeight, useSaleWeight } from '@/lib/herd';
+import { syncNow } from '@/lib/sync';
+import { showToast } from '@/lib/toast';
 import { makeStyles, S, useTheme, type ThemePref } from '@/theme';
 
 export default function Profile() {
@@ -17,6 +20,11 @@ export default function Profile() {
   const [name, setName] = useState(herd.profile?.name ?? '');
   const [coop, setCoop] = useState(herd.profile?.coop ?? '');
   const dirty = name.trim() !== (herd.profile?.name ?? '') || coop.trim() !== (herd.profile?.coop ?? '');
+  const server = getSettings();
+  const [url, setUrl] = useState(server.serverUrl);
+  const [code, setCode] = useState(server.token);
+  const urlError = url.trim() && !/^(https?:\/\/|\/)/i.test(url.trim()) ? 'Start with https:// or http://' : undefined;
+  const serverDirty = url.trim() !== server.serverUrl || code.trim() !== server.token;
   const initials =
     name
       .trim()
@@ -28,6 +36,23 @@ export default function Profile() {
   const replayTour = () => {
     setOnboarded(false);
     router.navigate('/');
+  };
+
+  const saveServer = async () => {
+    const u = url.trim();
+    const c = code.trim();
+    setServer(u, c);
+    if (!u) return showToast({ message: 'Server removed. Estimates are simulated.' });
+    const r = await ping(u, c);
+    showToast({
+      message:
+        r === 'ok'
+          ? 'Connected to the SmartHerd server.'
+          : r === 'unauthorized'
+            ? 'The server did not accept the access code.'
+            : 'Can’t reach that address. Check it and that the server is running.',
+    });
+    if (r === 'ok') void syncNow();
   };
 
   const confirmReset = () => {
@@ -74,6 +99,31 @@ export default function Profile() {
         </View>
       </Section>
 
+      <Section title="SmartHerd server" style={st.section}>
+        <View style={{ gap: S.lg, paddingVertical: S.md }}>
+          <Field
+            label="Server address"
+            value={url}
+            onChangeText={setUrl}
+            placeholder="https://… or http://192.168.x.x:8766"
+            autoCapitalize="none"
+            autoCorrect={false}
+            keyboardType="url"
+            hint="Leave empty to use simulated estimates."
+            error={urlError}
+          />
+          <Field
+            label="Access code"
+            value={code}
+            onChangeText={setCode}
+            secureTextEntry
+            autoCapitalize="none"
+            hint="Given by whoever runs the server."
+          />
+          <Button label="Save and test" variant="tonal" onPress={saveServer} disabled={!serverDirty || !!urlError} />
+        </View>
+      </Section>
+
       <Section title="Appearance" style={st.section}>
         <View style={{ paddingVertical: S.md }}>
           <Segmented<ThemePref>
@@ -109,7 +159,7 @@ export default function Profile() {
       <Section title="About" style={st.section}>
         <DataRow label="Version" value={Constants.expoConfig?.version ?? '1.0.0'} />
         <Text style={[T.caption, { marginTop: S.md }]}>
-          SmartHerd · COSC 111A Internet of Things, Cavite State University. Weights are simulated estimates for this prototype.
+          SmartHerd · COSC 111A Internet of Things, Cavite State University. Weights are prototype estimates and are not validated against a scale.
         </Text>
       </Section>
     </TabScreen>

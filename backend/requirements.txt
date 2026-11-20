@@ -1,0 +1,11 @@
+# Install torch with CUDA first if you have an NVIDIA GPU: https://pytorch.org/get-started/locally/
+torch==2.6.0
+torchvision==0.21.0
+ultralytics==8.4.213
+pillow==13.0.0
+scikit-learn==1.9.1
+huggingface_hub==2.4.0
+timm==1.0.31
+depth_pro @ git+https://github.com/apple/ml-depth-pro.git@9e65e4dbe9568d23c546fcec53302b10445e109e
+# depth_pro pins numpy<2 but works with 2.x; install this last to override it: pip install "numpy>=2,<2.8"
+numpy==2.5.5

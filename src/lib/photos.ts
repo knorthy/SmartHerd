@@ -28,3 +28,8 @@ export function deletePhotos(uris: (string | undefined)[]) {
     }
   }
 }
+
+/** Raw base64 (no data: prefix) for the estimate upload. */
+export async function photoBase64(uri: string): Promise<string> {
+  return new File(uri).base64();
+}
