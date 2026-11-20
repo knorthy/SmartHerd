@@ -1,0 +1,62 @@
+# Goat segmentation: weight-estimation train + 20/25 of each bg set; val = valid + last 5 of each; test = held-out test.
+# Train (from repo root, cache=True since 4000x3000 JPEG decoding starves the GPU):
+# python -c "from ultralytics import YOLO; YOLO('yolov8s-seg.pt').train(data='configs/seg.yaml', imgsz=640, epochs=80, patience=20, batch=8, cache=True, device=0, workers=0, project='runs', name='seg', exist_ok=True)"
+# then copy runs/segment/runs/seg/weights/best.pt to models/goat_seg.pt
+path: C:/Users/Kendrick/smartherd/data
+train:
+  - seg-goat-weight-estimation/train/images
+  - seg-bg-side/train/images/side_view_1008_jpg.rf.cdccd653aeefdc9d5e1bc78ca38073c1.jpg
+  - seg-bg-side/train/images/side_view_1029_jpg.rf.743c27c0cbe11122eeeddbb789e57b21.jpg
+  - seg-bg-side/train/images/side_view_1041_jpg.rf.ed0b228edf6f58a5fb344f239eadadd7.jpg
+  - seg-bg-side/train/images/side_view_1060_jpg.rf.d88f4e2caddafed87dc842a5098d08c3.jpg
+  - seg-bg-side/train/images/side_view_114_jpg.rf.121a94e3f01e95ab51d52985a637d460.jpg
+  - seg-bg-side/train/images/side_view_156_jpg.rf.87c86dd11fdc086ab2760b7ca433e52c.jpg
+  - seg-bg-side/train/images/side_view_160_jpg.rf.41278b2f4c0e4893b9f768940296a894.jpg
+  - seg-bg-side/train/images/side_view_173_jpg.rf.98968e50d71436f7660d2a969e80e6fa.jpg
+  - seg-bg-side/train/images/side_view_189_jpg.rf.1d92311308a0bdfb732bfe2eedb0da89.jpg
+  - seg-bg-side/train/images/side_view_232_jpg.rf.57ab26a0ecdcd6d6a91677cb49ea0d75.jpg
+  - seg-bg-side/train/images/side_view_453_jpg.rf.6b7023a1545f4d8bc88e21f4206c3b72.jpg
+  - seg-bg-side/train/images/side_view_490_jpg.rf.fb72ed7383177bacd7426addc03a3b04.jpg
+  - seg-bg-side/train/images/side_view_506_jpg.rf.0fcc8ac3943f77b922c75a8723418d44.jpg
+  - seg-bg-side/train/images/side_view_780_jpg.rf.15eff9037193b058ce4bcbd13564e306.jpg
+  - seg-bg-side/train/images/side_view_802_jpg.rf.1c32a8f11fa2785647094f9285854905.jpg
+  - seg-bg-side/train/images/side_view_811_jpg.rf.a727de16e227023f42c42b02bd0e7a5d.jpg
+  - seg-bg-side/train/images/side_view_822_jpg.rf.c674e55830720549089099011894206d.jpg
+  - seg-bg-side/train/images/side_view_848_jpg.rf.b9ff3859a28dcbb34c68a2c6cffcb847.jpg
+  - seg-bg-side/train/images/side_view_927_jpg.rf.97ca9c7b91faa52b9bae2362c6fc8f43.jpg
+  - seg-bg-side/train/images/side_view_934_jpg.rf.659cc7143fd3fe9ea759ab0d44420e5c.jpg
+  - seg-bg-top/train/images/top_115_jpg.rf.5b50985b881a80ec74d61f15ade71ab6.jpg
+  - seg-bg-top/train/images/top_171_jpg.rf.b289700ad086f370e836ce86f2438e77.jpg
+  - seg-bg-top/train/images/top_174_jpg.rf.8b395c6a4e45bdf656f5b14422162c14.jpg
+  - seg-bg-top/train/images/top_217_jpg.rf.d08de16d9f79f614fccfbe20b9aba212.jpg
+  - seg-bg-top/train/images/top_25_jpg.rf.1f3eeeab91382b9be740bee46521c79b.jpg
+  - seg-bg-top/train/images/top_275_jpg.rf.f4f34bb1dc9327b43afd252ed0df833d.jpg
+  - seg-bg-top/train/images/top_36_jpg.rf.ece5c4b068eee130b32025d02527bbf9.jpg
+  - seg-bg-top/train/images/top_418_jpg.rf.2a5789b68aef7a3de24ad98bad765b42.jpg
+  - seg-bg-top/train/images/top_422_jpg.rf.15c53c5c0e605503fe00ba63a91dcf4d.jpg
+  - seg-bg-top/train/images/top_489_jpg.rf.10cf050ff6dc8db46d5224458caf3bdd.jpg
+  - seg-bg-top/train/images/top_530_jpg.rf.eb4ca9b58b0d6e712593b213a5b4975e.jpg
+  - seg-bg-top/train/images/top_542_jpg.rf.2358db2a90dc39501e5aa351c63fa8a4.jpg
+  - seg-bg-top/train/images/top_553_jpg.rf.94e5f2d429ef0f1bdbc7667844654661.jpg
+  - seg-bg-top/train/images/top_586_jpg.rf.456d2c8d736b047f3da02e0d405fdd89.jpg
+  - seg-bg-top/train/images/top_606_jpg.rf.50ab03014b3f78e01d190a773a7c80b7.jpg
+  - seg-bg-top/train/images/top_631_jpg.rf.ecd759fd99ef1077908c2dcf5735bb2c.jpg
+  - seg-bg-top/train/images/top_655_jpg.rf.0e673a6f1cf1071aa4a075d021389a4d.jpg
+  - seg-bg-top/train/images/top_669_jpg.rf.dd05922a98fc8f37290fad699ff2ef28.jpg
+  - seg-bg-top/train/images/top_673_jpg.rf.b7121e95a5832d5ce231cb7386267ba3.jpg
+  - seg-bg-top/train/images/top_696_jpg.rf.f02f65b19c0f0ef4374cca071ff9a45e.jpg
+val:
+  - seg-goat-weight-estimation/valid/images
+  - seg-bg-side/train/images/side_view_947_jpg.rf.e11787f3bb127d77be92014d518b1ab9.jpg
+  - seg-bg-side/train/images/side_view_959_jpg.rf.f300993eb3b62caf175ea1b61e858f66.jpg
+  - seg-bg-side/train/images/side_view_967_jpg.rf.b47874fc84ac9596b76259932195953f.jpg
+  - seg-bg-side/train/images/side_view_968_jpg.rf.557e0cf62f66f1a9ae6c3a133fdf1903.jpg
+  - seg-bg-side/train/images/side_view_992_jpg.rf.762217a64363ffdc0da800f7c3855574.jpg
+  - seg-bg-top/train/images/top_702_jpg.rf.1ea6d2949fc5550637edd49d2e3ce4ca.jpg
+  - seg-bg-top/train/images/top_710_jpg.rf.8725b42f71794f14295ca55b544fd1a2.jpg
+  - seg-bg-top/train/images/top_718_jpg.rf.621501478f680e90b23eaa9a7571207a.jpg
+  - seg-bg-top/train/images/top_730_jpg.rf.4f1e78813eb354ecc0ef3a37213f5c26.jpg
+  - seg-bg-top/train/images/top_732_jpg.rf.b325f94269c45def1aa99d9968b3847c.jpg
+test: seg-goat-weight-estimation/test/images
+nc: 1
+names: ['Goat']

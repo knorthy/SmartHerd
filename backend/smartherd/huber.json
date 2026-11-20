@@ -1,0 +1,6 @@
+{
+  "_note": "IDENTITY placeholder [slope, intercept]; replace per stage with fit_huber(measured, tape) on real goats.",
+  "young":  {"body_length": [1.0, 0.0], "heart_girth": [1.0, 0.0]},
+  "grower": {"body_length": [1.0, 0.0], "heart_girth": [1.0, 0.0]},
+  "adult":  {"body_length": [1.0, 0.0], "heart_girth": [1.0, 0.0]}
+}

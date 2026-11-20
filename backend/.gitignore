@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.venv/
+checkpoints/
+runs/
+smartherd/cloud.db
+smartherd/uploads/
+smartherd/pi.db
+data/*
+!data/ground_truth/
+!data/test-photos/
